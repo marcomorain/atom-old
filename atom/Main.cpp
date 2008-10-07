@@ -8,7 +8,7 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-	parse("(a b (c d) e)");
+	//parse("(a b (c d) e)");
 
 	while(true)
 	{

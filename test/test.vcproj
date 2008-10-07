@@ -88,6 +88,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="&quot;$(TargetPath)&quot;"
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration

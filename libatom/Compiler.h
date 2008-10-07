@@ -2,6 +2,8 @@
 #undef null
 #define null (0)
 
+typedef __int64 Integer;
+
 #ifdef WIN32
 #	define BREAKPOINT() do { __asm int 3 } while(0)
 #	pragma warning ( disable : 4800 ) // Warning when casting to a bool from a pointer.

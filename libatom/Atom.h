@@ -8,8 +8,7 @@
 "Name"    = 'LISP'
 "Author"  = 'John McCarthy'
 "Version" = 'Minimal'
-"About"   = 'LISP is an abstract language that organizes ALL'
-| 'data around "lists".'
+"About"   = 'LISP is an abstract language that organizes ALL data around "lists".'
 
 "Start Symbol" = <s-Expression> 
 
@@ -27,21 +26,29 @@ Atom = ( {Atom Char} | '\'{Printable} )+
 <Quote>  ::=	  ''      !Quote = do not evaluate 
 				|
 */
+/*
+	<s-expr>	=>	<quoted-s-expr>
+				|	Atom
+				|	<list>
 
+	<list>		=>	'(' <series> ')'
+				|	'(' <s-expr> . <s-expr> ')'
 
+	<series>	=>	<s-expr> <series> 
+				|	-
+
+	<quoted-s-epr>	=>	'`' <s-epr>
+*/
 
 class Runtime : public NoCopy
 {
-  private:
-  public:
 
-	Array<Cell*> m_last_cell;
+	public:
+
 	Map<hash, Cell*> m_symbols;
 
 	Cell* m_nil;
 	Cell* m_T;
-	Cell* m_last_parse;
-	Cell* m_last_list;
 	
 	typedef Cell* (*Function)(Runtime&, Cell*);
 
@@ -55,35 +62,36 @@ class Runtime : public NoCopy
 	 Runtime ( void );
 	~Runtime ( void );
 
-private:
-
-	Cell* getLastCell ( void ) const;
-	void setLastCell ( Cell* c );
-	Cell* addCell ( Cell* cell );
-	void endList ( void );
-	void startList ( void );
-
-public:
-	
-	void printCell ( const Cell* cell ) const;
-	void pushQuote ( void );
-	void pushString ( char* str );
-	void pushAtom ( char* atom );
-	void pushLeftParen ( void );
-	void pushRightParen ( void );
-	void pushDot ( void );
 	Cell* execute ( Cell* cell );
-	Cell* get_last_parse ( void ) const;
+	Cell* pushAtom ( char* atom );
+
 };
 
+typedef struct
+{
+	Cell*		cell;
+	const char* input;
+} State;
+
+
+inline bool valid ( const State& state )
+{
+	return state.cell && state.input;
+}
+
+// Validation
 bool atom_char ( const char c );
 bool white_space_char ( const char c );
 const char* skip_whitespace ( const char* input );
-const char* accept_quote ( const char* input, Runtime& parser);
-const char* accept_atom ( const char* input, Runtime& parser );
-const char* accept_left_paren ( const char* input, Runtime& parser );
-const char* accept_right_paren ( const char* input, Runtime& parser );
-const char* accept_dot ( const char* input, Runtime& parser );
-const char* accept_s_expression ( const char* input, Runtime& parser );
-const char* accept_series ( const char* input, Runtime& parser );
+bool read_integer (const char* string, Integer& value);
+
+// Parser Functions
+State accept_atom			( const char* input, Runtime& parser );
+State accept_ident			( const char* input, Runtime& parser );
+State accept_string			( const char* input, Runtime& parser );
+State accept_quoted_s_exp	( const char* input, Runtime& parser );
+State accept_list			( const char* input, Runtime& parser );
+State accept_series			( const char* input, Runtime& parser );
+State accept_s_expression	( const char* input, Runtime& parser );
+State accept_dot ( const char* input, Runtime& parser );
 bool parse ( const char* input );
