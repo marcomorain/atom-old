@@ -18,7 +18,7 @@ class Cell : public NoCopy
 		Cons	u_cons;
 		char*	u_string;
 		double	u_float;
-		__int64	u_int;
+		Integer u_int;
 
 	} CellUnion;
 
@@ -32,7 +32,8 @@ class Cell : public NoCopy
 		FUNCTION	= 1<<3,
 		LIST		= 1<<4,
 		CONS		= 1<<5,
-		TRUE		= 1<<6
+		TRUE		= 1<<6,
+		IDENT		= 1<<7
 	} Type;
 
 	CellUnion	m_union;
@@ -45,12 +46,28 @@ class Cell : public NoCopy
 	
 	public:
 
-	Cell ( Type type )
+	Cell ( Type type, const char* value = null)
 		: m_type(type)
 		, m_atom_name(null)
 	{
 		m_union.u_int = 0;
 		m_id = s_count++;
+
+		switch (m_type)
+		{
+			case STRING:
+			{
+				jassert(value);
+				const int length = strlen(value);
+				m_union.u_string = new char [length+1];
+				strncpy(m_union.u_string, value, length);
+				m_union.u_string[length] = 0;
+				jassert(strcmp(m_union.u_string, value) == 0);
+			}
+			break;
+			default:
+			break;
+		}
 	}
 
 	bool is_a ( Type type ) const
@@ -61,6 +78,14 @@ class Cell : public NoCopy
 	~Cell ( void )
 	{
 		delete [] m_atom_name;
+		switch (m_type)
+		{
+			case STRING:
+				delete [] m_union.u_string;
+				break;
+			default:
+				break;
+		}
 	}
 
 	const char* atom_name ( void ) const
@@ -69,7 +94,7 @@ class Cell : public NoCopy
 	}
 
 	void set_atom_name ( const char* atom_name );
-
+	
 	inline Cell* car () const
 	{
 		return m_union.u_cons.m_car;
@@ -91,7 +116,7 @@ class Cell : public NoCopy
 	}
 };
 
-std::ostream& operator << ( std::ostream& os, Cell& cell );
+std::ostream& operator << ( std::ostream& os, Cell* cell );
 
 
 

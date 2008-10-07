@@ -3,15 +3,10 @@
 #include <string>
 #include <JAssert.h>
 using namespace std;
-
 #include <Atom.h>
 #include <Functions.h>
-/*
-static bool valid_atom_chars [127] =
-{
-	0,
-}
-*/
+
+const static State no_match = {0,0};
 
 Runtime::Runtime ( void )
 {
@@ -24,47 +19,11 @@ Runtime::Runtime ( void )
 	register_function("setq", function_setq);
 	register_function("car",  function_car);
 	register_function("cdr",  function_cdr);
-
-	m_last_list = null;	
-	m_last_parse = null;
 }
 
 Runtime::~Runtime ( void )
 {
 }
-
-
-Cell* Runtime::get_last_parse ( void ) const
-{
-	return m_last_parse;
-}
-
-
-void Runtime::printCell ( const Cell* c ) const
-{
-	if (!c) return;
-
-	cout << "(";
-
-	// todo: make get atom name
-	if (c->m_atom_name)
-	{
-		cout << "Atom name: " << c->m_atom_name;
-	}
-	else if (c->is_a(Cell::STRING))
-	{
-		jassert(0);
-	}
-	else
-	{
-		printCell( car(c) );
-	}
-
-	cout << ", ";
-	printCell( cdr(c) );
-	cout << ")";
-}
-
 
 Cell* Runtime::call_function (const char* function_name, Cell* params )
 {
@@ -104,111 +63,60 @@ Cell* Runtime::execute ( Cell* cell )
 	return call_function( function->m_atom_name, cdr (function ) );
 }
 
-void Runtime::pushQuote ( void )
+Cell* Runtime::pushAtom ( char* atom )
 {
-}
+	Integer val;
 
-void Runtime::pushString ( char* str )
-{
-	Cell* c = new Cell(Cell::LIST);
-	c->set_atom_name("Points to a string");
-	addCell(c);
-
-	Cell* string_cell = new Cell(Cell::STRING);
-	string_cell->set_atom_name("A string atom");
-	addCell(string_cell);
-	car(c) = string_cell;
-	setLastCell(c);
-}
-
-void Runtime::pushAtom ( char* atom )
-{
-	Cell* c = new Cell(Cell::LIST);
-	c->set_atom_name("Points to an atom");
-	addCell(c);
-
-	// cell
-	Cell* atom_cell = new Cell(Cell::NUMBER);
-	atom_cell->set_atom_name(atom);
-	addCell(atom_cell);
-
-	car(c) = atom_cell;
-
-	setLastCell(c);
-}
-
-void Runtime::pushLeftParen ( void )
-{
-	startList();
-}
-
-void Runtime::startList ( void )
-{
-	Cell* new_list = new Cell(Cell::LIST);
-	addCell(new_list);
-	m_last_list = new_list;
-}
-
-void Runtime::pushRightParen ( void )
-{
-	// cell
-	endList();
-	m_last_cell.push_back(null);
-}
-
-void Runtime::endList ( void )
-{
-	m_last_cell.pop_back();
-}
-
-void Runtime::pushDot ( void )
-{
-}
-
-Cell* Runtime::addCell ( Cell* cell )
-{
-	if (!m_last_parse)
+	if (read_integer(atom, val))
 	{
-		m_last_parse = cell;
-	}
+		cout << "Accepted an integer " << val << endl;
 
-	if (m_last_list)
-	{
-		jassert(m_last_list->is_a(Cell::LIST));
-		car(m_last_list) = cell;
-		m_last_list = null;
-	}
-	
-	if (getLastCell())
-	{
-		cdr(getLastCell()) = cell;
-	}
+		Cell* c = new Cell(Cell::LIST);
+		c->set_atom_name("Points to an integer");
 
-	setLastCell(cell);
-
-	return cell;
-}
-
-Cell* Runtime::getLastCell ( void ) const
-{
-	Cell* last = 0;
-	if (m_last_cell.size())
-	{
-		last = m_last_cell.back();
-	}
-	return last;
-}
-
-void Runtime::setLastCell ( Cell* c )
-{
-	if (m_last_cell.size() > 0)
-	{
-		m_last_cell.back() = c;
+		// cell
+		Cell* atom_cell = new Cell(Cell::NUMBER);
+		atom_cell->m_union.u_int = val;
+		car(c) = atom_cell;
+		return c;
 	}
 	else
 	{
-		m_last_cell.push_back(c);
+		cout << "Accepted an atom " << atom << endl;
+
+		Cell* c = new Cell(Cell::LIST);
+		c->set_atom_name("Points to an ident");
+
+		// cell
+		Cell* atom_cell = new Cell(Cell::IDENT);
+		atom_cell->set_atom_name(atom);
+		car(c) = atom_cell;
+
+		return c;
 	}
+}
+
+bool read_integer (const char* string, Integer& value)
+{
+	jassert(string);
+	jassert(strlen(string)>0);
+
+	const Integer base = 10;
+	Integer accum = 0;
+	
+	while (*string)
+	{
+		accum *= base;
+		const char c = (*string);
+		if (c < '0') return false;
+		if (c > '9') return false;
+		accum += (c - '0');
+		string++;
+	}
+
+	// only update value if the input was valid;
+	value = accum;
+	return true;
 }
 
 
@@ -242,35 +150,50 @@ const char* skip_whitespace ( const char* input )
 	return input;
 }
 
-const char* accept_quote ( const char* input, Runtime& parser)
+State accept_quoted_s_exp ( const char* input, Runtime& parser)
 {
+	// todo test this!
+	//jassert(0);
+
 	jassert(input);
-	if (*input == 0) return null;
+
+	if (*input == 0) return no_match;
+
 	input = skip_whitespace(input);
-	if (*input == '`')
+
+	if (*input != '`')
 	{
-		parser.pushQuote();
-		input++;
+		return no_match;
 	}
-	return input;
+
+	Cell* quote = new Cell(Cell::LIST);
+
+	State state = accept_s_expression(input+1, parser);
+	jassert(valid(state));
+	
+	car(quote) = state.cell;
+	state.cell = quote;
+
+	return state;
 }
 
-const char* accept_string ( const char* input, Runtime& parser )
+State accept_string ( const char* input, Runtime& parser )
 {
 	jassert(input);
-	jassert(*input == '\"');
+	input = skip_whitespace(input);
 
-	const char* start = input + 1;
-	const char* end = start;
+	if (*input != '\"')
+	{
+		return no_match;
+	}
+
+	const char* start	= input + 1;
+	const char* end		= start;
 
 	while (*end != '\"')
 	{
 		end++;
-
-		if (*end == 0)
-		{
-			return null;
-		}
+		if (*end == 0) return no_match;
 	}
 
 	const int length = end - start;
@@ -278,15 +201,25 @@ const char* accept_string ( const char* input, Runtime& parser )
 	strncpy(s, start, length);
 	s[length] = 0;
 
-	parser.pushString(s);
+	// todo: make functions take "start, end" char*
+	// to avoid this alloction
+	State state;
+	cout << "Accepted a string " << s << endl;
+	state.cell = new Cell(Cell::LIST);
+	state.cell->set_atom_name("Points to a string");
+	Cell* string_cell = new Cell(Cell::STRING, s);
+	string_cell->set_atom_name("A string atom");
+	car(state.cell) = string_cell;
+	state.input = end + 1;
 
-	return end + 1;
+	return state;
 }
 
-const char* accept_ident ( const char* input, Runtime& parser )
+State accept_ident ( const char* input, Runtime& parser )
 {
 	jassert(input);
-	if (*input == 0) return null;
+	if (*input == 0) return no_match;
+
 	input = skip_whitespace(input);
 
 	const char* start = input;
@@ -296,160 +229,170 @@ const char* accept_ident ( const char* input, Runtime& parser )
 
 	if (length < 1)
 	{
-		return null;
+		return no_match;
 	}
 
 	char* atom = (char*)malloc(length+1);
 	strncpy(atom, start, length);
 	atom[length] = null; // null terminal
 
-	parser.pushAtom(atom);
-	return end;
+	// todo: make push atom accept a start,end char* pair
+	State state;
+	state.cell	= parser.pushAtom(atom);
+	state.input = end; 
+	return state;
 }
 
-const char* accept_atom ( const char* input, Runtime& parser )
+State accept_atom ( const char* input, Runtime& parser )
 {
 	jassert(input);
-	if (*input == 0) return null;
-	input = skip_whitespace (input);
+	if (*input == 0) return no_match;
 
-	const char* atom = 0;
+	State state;
 
-	if (*input == '\"')
+	state = accept_string(input, parser);
+
+	if (!valid(state))
 	{
-		atom = accept_string(input, parser);
+		state = accept_ident(input, parser);
+	}
+
+	return state;
+}
+
+State accept_dot ( const char* input, Runtime& parser )
+{
+	jassert(0);
+	return no_match;
+}
+
+State accept_list ( const char* input, Runtime& parser )
+{
+	jassert(input);
+	if (*input == 0) return no_match;
+	input = skip_whitespace ( input );
+
+	if (*input != '(')
+	{
+		//cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error. Expected a '(' at " << input << endl;
+		return no_match;
+	}
+
+	// Skip past the '('
+	input++;
+
+	input = skip_whitespace(input);
+
+	if (*input == ')')
+	{
+		cout << "Accepting the NIL list \"( )\"" << endl;
+		State nil;
+		nil.input = input + 1;
+		nil.cell = parser.m_nil;
+		return nil;
+	}
+
+	Cell* head = new Cell(Cell::LIST);
+
+	State state = accept_series(input, parser);
+	
+	if (!valid(state))
+	{
+		state = accept_s_expression(input, parser);
+	}
+
+	if (!valid(state))
+	{
+		cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error reading a list at " << input << endl;
+		return no_match;
+	}
+
+	input = skip_whitespace(state.input);
+	
+	if (*input != ')')
+	{
+		cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error. Expecting \")\" at " << input << endl;
+		return no_match;
 	}
 	else
 	{
-		atom = accept_ident(input, parser);
+		car(head) = state.cell;
+		state.cell = head;
+		return state;
 	}
-	return atom;
 }
 
-const char* accept_left_paren ( const char* input, Runtime& parser )
+State accept_s_expression ( const char* input, Runtime& parser )
 {
 	jassert(input);
-	if (*input == 0) return null;
-	input = skip_whitespace(input);
-	if ( *input == '(' )
-	{
-		parser.pushLeftParen();
-		return input + 1;
-	}
-	return null;
-}
-
-const char* accept_right_paren ( const char* input, Runtime& parser )
-{
-	jassert(input);
-	if (*input == 0) return null;
-	input = skip_whitespace(input);
-	if ( *input == ')' )
-	{
-		parser.pushRightParen();
-		return input + 1;
-	}
-	return null;
-}
-
-
-const char* accept_dot ( const char* input, Runtime& parser )
-{
-	jassert(input);
-	if (*input == 0) return null;
-	input = skip_whitespace(input);
-	if ( *input == '.' )
-	{
-		parser.pushDot();
-		return input + 1;
-	}
-	return null;
-}
-
-const char* accept_s_expression ( const char* input, Runtime& parser )
-{
-	jassert(input);
-	if (*input == 0) return null;
+	if (*input == 0) return no_match;
 	input = skip_whitespace ( input );
-	input = accept_quote(input, parser);
 
-	if (const char* atom = accept_atom(input, parser))
+	State state = accept_quoted_s_exp(input, parser);
+
+	if (valid(state)) 
 	{
-		return atom;
+		return state;
 	}
 
-	const char* s_expression = null;
-	const char* dot = null;
-	const char* left = accept_left_paren(input, parser);
+	state = accept_atom(input, parser);
 
-	if (!left)
+	if (valid(state))
 	{
-		return null;
+		return state;
 	}
 
-	const char* series = accept_series(left, parser);
-	
-	if (!series)
+	state = accept_list(input, parser);
+
+	if (valid(state))
 	{
-		s_expression = accept_s_expression(left, parser);
-
-		if (!s_expression)
-		{
-			cout << "Parse error - unexpected token at " << left << endl;
-			return null;
-		}
-
-		dot = accept_dot(s_expression, parser);
-		
-		if (!dot)
-		{
-			cout << "Parse error - expected . at " << s_expression << endl;
-			return null;
-		}	
+		return state;
 	}
 
-	const char* body = series ? series : dot;
-
-	const char* right = accept_right_paren( body, parser);
-
-	if (!right)
-	{
-		cout << "Parse error - expected ) at " << body << endl;
-		return null;
-	}
-
-	return right;
+	return no_match;
 }
 
-const char* accept_series ( const char* input, Runtime& parser )
+State accept_series	( const char* input, Runtime& parser )
 {
 	jassert(input);
-	if (*input == 0) return null;
+	if (*input == 0) return no_match;
 	input = skip_whitespace(input);
 
-	const char* s_expression = accept_s_expression(input, parser);
+	State sexpr = accept_s_expression(input, parser);
 
-	if (!s_expression)
+	if (!valid(sexpr))
 	{
-		return null;
+		return no_match;
 	}
 
-	const char* series = accept_series(s_expression, parser);
+	State series = accept_series(sexpr.input, parser);
 
-	return series ? series : s_expression;
+	if (valid(series))
+	{
+		Cell* start = sexpr.cell;
+		cdr(start) = series.cell;
+		series.cell = start;
+		return series;
+	}
+	else
+	{
+		return sexpr;
+	}
 }
 
 bool parse ( const char* input )
 {
 	Runtime parser;
 
-	const char* last = accept_s_expression (input, parser);
+	const State s = accept_s_expression (input, parser);
 
-	if (last)
+	cout << s.cell << endl;
+
+	if (0)
 	{
-		Cell* parsed_input = parser.get_last_parse();
-		Cell* result = parser.execute( parsed_input );
-		cout << *result << endl << endl;
+		Cell* result = parser.execute( s.cell );
+		cout << result << endl << endl;
 	}
-	return !!last;
+
+	return !!s.cell;
 }

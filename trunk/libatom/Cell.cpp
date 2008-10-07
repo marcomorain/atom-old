@@ -24,10 +24,8 @@ void Cell::set_atom_name ( const char* atom_name )
 	}
 }
 
-ostream& operator << ( ostream& stream, Cell& cell_ref )
+ostream& operator << ( ostream& stream, Cell* cell )
 {
-	Cell* cell = &cell_ref;
-
 	switch (cell->m_type)
 	{
 		case Cell::LIST:
@@ -49,16 +47,26 @@ ostream& operator << ( ostream& stream, Cell& cell_ref )
 			{
 				stream << cdr(cell);
 			}
-			else
-			{
-				stream << "NIL";
-			}
 
-			stream << ") ";
+			stream << ")";
 		}
 		break;
 
+		case Cell::ATOM:
+		case Cell::IDENT:
+			stream << cell->atom_name();
+			break;
+
+		case Cell::STRING:
+			stream << '\"'<< cell->m_union.u_string << '\"';
+			break;
+
+		case Cell::NUMBER:
+			stream << cell->m_union.u_int;
+			break;
+
 		default:
+			stream << "Default";
 			break;
 	}
 
