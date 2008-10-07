@@ -4,6 +4,7 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcproj", "{8B678C73-5DB3-4E48-ABE6-1EF51AD4CD8A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235} = {7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235}
+		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6} = {64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "atom", "atom\atom.vcproj", "{CE3A26D8-CEEC-4FA1-BE2B-9BE3A6CAF49E}"
@@ -12,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "atom", "atom\atom.vcproj", 
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libatom", "libatom\libatom.vcproj", "{7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTest++.vsnet2005", "External\UnitTest++\UnitTest++.vsnet2005.vcproj", "{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +34,10 @@ Global
 		{7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235}.Debug|Win32.Build.0 = Debug|Win32
 		{7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235}.Release|Win32.ActiveCfg = Release|Win32
 		{7502AE7B-6B2B-43BB-80FE-D6C9BEB4B235}.Release|Win32.Build.0 = Release|Win32
+		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}.Debug|Win32.Build.0 = Debug|Win32
+		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}.Release|Win32.ActiveCfg = Release|Win32
+		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
