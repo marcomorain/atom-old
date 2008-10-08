@@ -2,7 +2,6 @@
 #include <JAssert.h>
 #include <Array.h>
 
-typedef unsigned hash;
 inline hash hash_string (const char* str )
 {
 	jassert(str);
@@ -22,14 +21,13 @@ class Map
 	{
 		Key			m_key;
 		Data		m_data;
-		//const char* m_string;
 	} Pair;
 
 	Array<Pair> m_data;
 
 public:
 
-	bool has_key ( const Key& key )
+	bool has_key ( const Key& key ) const
 	{
 		for (int i=0; i<m_data.size(); i++)
 		{
@@ -50,15 +48,22 @@ public:
 		return m_data.back().m_data;
 	}
 
-	const Data& operator [] ( const Key& key ) const
+	Data get ( const Key& key ) const
+	{
+		jassert(has_key(key));
+		for (int i=0; i<m_data.size(); i++)
+		{
+			if (m_data[i].m_key == key) return m_data[i].m_data;
+		}
+		BREAKPOINT();
+	}
+
+	Data get (const Key& key, const Data& default ) const
 	{
 		for (int i=0; i<m_data.size(); i++)
 		{
 			if (m_data[i].m_key == key) return m_data[i].m_data;
 		}
-		Pair p;
-		p.m_key = key;
-		m_data.push_back(p);
-		return m_data.back().m_data;
+		return default;
 	}
 };

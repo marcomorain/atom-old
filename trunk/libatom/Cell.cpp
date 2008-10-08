@@ -26,6 +26,12 @@ void Cell::set_atom_name ( const char* atom_name )
 
 ostream& operator << ( ostream& stream, Cell* cell )
 {
+	if (!cell)
+	{
+		stream << "NIL";
+		return stream;
+	}
+
 	switch (cell->m_type)
 	{
 		case Cell::LIST:

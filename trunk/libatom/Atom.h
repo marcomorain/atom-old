@@ -24,9 +24,9 @@ Atom = ( {Atom Char} | '\'{Printable} )+
 				|
 
 <Quote>  ::=	  ''      !Quote = do not evaluate 
-				|
-*/
-/*
+|
+
+
 	<s-expr>	=>	<quoted-s-expr>
 				|	Atom
 				|	<list>
@@ -42,39 +42,63 @@ Atom = ( {Atom Char} | '\'{Printable} )+
 
 class Runtime : public NoCopy
 {
+//  private: // members
+public:
 
-	public:
-
-	Map<hash, Cell*> m_symbols;
 
 	Cell* m_nil;
 	Cell* m_T;
 	
 	typedef Cell* (*Function)(Runtime&, Cell*);
 
-	Array<Function>		m_functions;
-	Array<const char*>	m_function_names;
+	Map<hash, Function> m_builtins;
+	Map<hash, Cell*>	m_symbols;
+	Map<hash, Cell*>	m_functions;
 
-	Cell* call_function (const char* function_name, Cell* params ); 
+	Cell* call_function (Cell* function, Cell* params ); 
 
 	void register_function ( const char* name, Function func );
 
-	 Runtime ( void );
-	~Runtime ( void );
-
-	Cell* execute ( Cell* cell );
 	Cell* pushAtom ( char* atom );
 
+  public: // functions
+
+	Runtime ( void );
+	~Runtime ( void );
+
+	Cell* evaluate ( Cell* cell );
+
+	Cell* funcall ( Cell* func, Cell* params );
+
+
+	bool parse_and_evaluate ( const char* input );
+
+	public: // Parser Functions
+
+
+	typedef struct
+	{
+		Cell*		cell;
+		const char* input;
+
+	} State;
+
+	State accept_atom			( const char* input );
+	State accept_ident			( const char* input );
+	State accept_string			( const char* input );
+	State accept_quoted_s_exp	( const char* input );
+	State accept_list			( const char* input );
+	State accept_series			( const char* input );
+	State accept_s_expression	( const char* input );
+	State accept_dot			( const char* input );	
 };
 
-typedef struct
+inline bool nil ( Cell* cell )
 {
-	Cell*		cell;
-	const char* input;
-} State;
+	return ! ( cell && ( car(cell) || cdr(cell) ) );
+}
 
-
-inline bool valid ( const State& state )
+inline bool valid ( const Runtime::State& state )
 {
 	return state.cell && state.input;
 }
@@ -85,13 +109,3 @@ bool white_space_char ( const char c );
 const char* skip_whitespace ( const char* input );
 bool read_integer (const char* string, Integer& value);
 
-// Parser Functions
-State accept_atom			( const char* input, Runtime& parser );
-State accept_ident			( const char* input, Runtime& parser );
-State accept_string			( const char* input, Runtime& parser );
-State accept_quoted_s_exp	( const char* input, Runtime& parser );
-State accept_list			( const char* input, Runtime& parser );
-State accept_series			( const char* input, Runtime& parser );
-State accept_s_expression	( const char* input, Runtime& parser );
-State accept_dot ( const char* input, Runtime& parser );
-bool parse ( const char* input );

@@ -40,6 +40,14 @@ TEST(read_integer)
 
 	CHECK(read_integer ("3242", val));
 	CHECK(val == 3242);
+
+	CHECK(read_integer("-1", val));
+	CHECK(val == -1);
+
+	CHECK(read_integer("-0", val));
+	CHECK(val == 0);
+	
+	CHECK(!read_integer("-", val));
 	
 	CHECK(!read_integer("a", val));
 	CHECK(!read_integer("123j", val));
@@ -52,40 +60,40 @@ TEST(accept_ident)
 {
 	Runtime r;
 
-	State state;
+	Runtime::State state;
 
 	const char* input1 = "this is a valid input";
 
-	state = accept_atom(input1, r);
+	state = r.accept_atom(input1);
 	CHECK(valid(state));
 
-	CHECK(!valid(accept_ident("\"invalid\"", r)));
+	CHECK(!valid(r.accept_ident("\"invalid\"")));
 
 	const char* input3 = "*this-is-a-long-one*";
-	state = accept_ident(input3, r);
+	state = r.accept_ident(input3);
 	CHECK(valid(state));
-	CHECK(0 == strcmp(input3, car(state.cell)->atom_name()));
+	CHECK(0 == _stricmp(input3, state.cell->atom_name()));
 
-	State number = accept_ident("7", r);
+	Runtime::State number = r.accept_ident("7");
 	CHECK(valid(number));
-	CHECK( car ( number.cell)->is_a(Cell::NUMBER));
-	CHECK( car ( number.cell)->m_union.u_int == 7);
+	CHECK( number.cell->is_a(Cell::NUMBER));
+	CHECK( number.cell->m_union.u_int == 7);
 }
 
 TEST(accept_string)
 {
 	Runtime runtime;
 
-	State state;
+	Runtime::State state;
 
 	const char* input1 = " \"this is a string\"with a tail";
-	state = accept_string(input1, runtime);
+	state = runtime.accept_string(input1);
 
 	CHECK(state.cell);
 	CHECK(*state.input == 'w');
 
 	const char* input2 = "this is not a string";
-	state = accept_string(input2, runtime);
+	state = runtime.accept_string(input2);
 
 	CHECK(!state.cell);
 	CHECK(!state.input);
@@ -96,13 +104,13 @@ TEST(accept_list)
 {
 	Runtime runtime;
 
-	CHECK(!valid(accept_list(" this is not valid ", runtime)));
+	CHECK(!valid(runtime.accept_list(" this is not valid ")));
 
-	CHECK(valid(accept_list("( ) ", runtime)));
+	CHECK(valid(runtime.accept_list("( ) ")));
 
-	CHECK(!valid(accept_list("((", runtime)));
+	CHECK(!valid(runtime.accept_list("((")));
 
-	CHECK(valid(accept_list("( this is a valid list )", runtime)));
+	CHECK(valid(runtime.accept_list("( this is a valid list )")));
 }
 
 TEST(runtime)

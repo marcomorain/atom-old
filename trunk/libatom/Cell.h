@@ -1,4 +1,5 @@
 #pragma once
+#include <Map.h>
 #include <JAssert.h>
 #include <ostream>
 
@@ -13,13 +14,19 @@ class Cell : public NoCopy
 
 	} Cons;
 
+	typedef struct  
+	{
+		Cell*	m_value;
+		hash	m_name;
+	} Ident;
+
 	typedef union
 	{
 		Cons	u_cons;
 		char*	u_string;
 		double	u_float;
 		Integer u_int;
-
+		Ident	u_ident;
 	} CellUnion;
 
   public:
@@ -65,6 +72,16 @@ class Cell : public NoCopy
 				jassert(strcmp(m_union.u_string, value) == 0);
 			}
 			break;
+
+			case IDENT:
+			{
+				jassert(value);
+				m_union.u_ident.m_name	= hash_string(value);
+				m_union.u_ident.m_value = null;
+				set_atom_name(value);
+			}
+			break;
+
 			default:
 			break;
 		}
