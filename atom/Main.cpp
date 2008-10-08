@@ -8,17 +8,19 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-	//parse("(a b (c d) e)");
+	Runtime runtime;
+	//runtime.parse("(a b (c d) e)");
 
 	while(true)
 	{
 		const int buffer_size = 1024;
 		char buffer[buffer_size];
-		cout << ">" << flush;
+		cout << "> " << flush;
 		cin.getline (buffer, buffer_size);
 		if ( strlen ( buffer ) == 0 ) break;
-		parse(buffer);
+		runtime.parse_and_evaluate(buffer);
 	}
+
 	cout << "Press any key to quit." << endl;
 	char end = cin.get();
 	return EXIT_SUCCESS;

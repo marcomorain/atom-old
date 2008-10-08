@@ -3,6 +3,7 @@
 #define null (0)
 
 typedef __int64 Integer;
+typedef unsigned hash;
 
 #ifdef WIN32
 #	define BREAKPOINT() do { __asm int 3 } while(0)
