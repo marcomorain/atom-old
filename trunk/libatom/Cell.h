@@ -3,7 +3,7 @@
 #include <JAssert.h>
 #include <ostream>
 
-class Cell : public NoCopy
+class Cell : public NoCopy, public Counted<Cell>
 {
   private:
 
@@ -18,12 +18,13 @@ class Cell : public NoCopy
 	{
 		Cell*	m_value;
 		hash	m_name;
+
 	} Ident;
 
 	typedef union
 	{
 		Cons	u_cons;
-		char*	u_string;
+		hash	u_string;
 		double	u_float;
 		Integer u_int;
 		Ident	u_ident;
@@ -44,47 +45,39 @@ class Cell : public NoCopy
 	} Type;
 
 	CellUnion	m_union;
-	char*		m_atom_name;
+	std::string	m_atom_name;
 
 //private:
 	const Type	m_type;
-	static int	s_count;
-	int			m_id;
 	
 	public:
 
-	Cell ( Type type, const char* value = null)
+	Cell ( Type type, hash h )
 		: m_type(type)
-		, m_atom_name(null)
 	{
 		m_union.u_int = 0;
-		m_id = s_count++;
-
+		
 		switch (m_type)
 		{
 			case STRING:
-			{
-				jassert(value);
-				const int length = strlen(value);
-				m_union.u_string = new char [length+1];
-				strncpy(m_union.u_string, value, length);
-				m_union.u_string[length] = 0;
-				jassert(strcmp(m_union.u_string, value) == 0);
-			}
-			break;
+				m_union.u_string = h;
+				break;
 
 			case IDENT:
-			{
-				jassert(value);
-				m_union.u_ident.m_name	= hash_string(value);
+				m_union.u_ident.m_name	= h;
 				m_union.u_ident.m_value = null;
-				set_atom_name(value);
-			}
-			break;
-
+				break;
+			
 			default:
-			break;
+				jassert(0);
+				break;
 		}
+	}
+
+	Cell ( Type type )
+		: m_type(type)
+	{
+		m_union.u_int = 0;
 	}
 
 	bool is_a ( Type type ) const
@@ -94,41 +87,48 @@ class Cell : public NoCopy
 
 	~Cell ( void )
 	{
-		delete [] m_atom_name;
-		switch (m_type)
-		{
-			case STRING:
-				delete [] m_union.u_string;
-				break;
-			default:
-				break;
-		}
+	}
+
+	inline hash& name ( void )
+	{
+		jassert(is_a(IDENT));
+		return m_union.u_ident.m_name;
+	}
+
+	inline Integer& number ( void )
+	{
+		jassert(is_a(NUMBER));
+		return m_union.u_int;
 	}
 
 	const char* atom_name ( void ) const
 	{
-		return m_atom_name;
+		return m_atom_name.c_str();
 	}
 
-	void set_atom_name ( const char* atom_name );
+	void set_atom_name ( const std::string& name );
 	
 	inline Cell* car () const
 	{
+		jassert(is_a(LIST));
 		return m_union.u_cons.m_car;
 	}
 
 	inline Cell* cdr () const
 	{
+		jassert(is_a(LIST));
 		return m_union.u_cons.m_cdr;
 	}
 
 	inline Cell*& car ()
 	{
+		jassert(is_a(LIST));
 		return m_union.u_cons.m_car;
 	}
 
 	inline Cell*& cdr ()
 	{
+		jassert(is_a(LIST));
 		return m_union.u_cons.m_cdr;
 	}
 };

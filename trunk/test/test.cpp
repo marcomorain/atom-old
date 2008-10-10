@@ -1,6 +1,41 @@
 #include <UnitTest++.h>
 #include <Atom.h>
 
+TEST(String)
+{
+	// nulls
+	{
+		String s;
+		CHECK(s.c_str() == null);
+
+		String t = s;
+		CHECK(t.c_str() == null);
+
+		String u(t);
+		CHECK(u.c_str() == null);
+	}
+
+	// strings
+	{
+		String h("Hello");
+		CHECK(h.c_str());
+		CHECK(strlen("Hello") == strlen(h.c_str()));
+
+		String x = h;
+		CHECK(strcmp(x.c_str(), h.c_str()) == 0);
+
+		String y(x);
+
+		CHECK(strcmp(y.c_str(), "Hello") == 0);
+
+		const char* start = "Start of a string";
+		const char* end = start + strlen("Start of a");
+		String start_end(start, end);
+		CHECK(start_end.c_str());
+		CHECK(strcmp(start_end.c_str(), "Start of a") == 0);
+	}
+}
+
 TEST(atom_char)
 {
 	CHECK( atom_char('a'));
@@ -22,37 +57,41 @@ TEST(cell)
 {
 }
 
+static inline bool read_integer_z(const char* s, Integer& val)
+{
+	return read_integer(s, s+strlen(s), val);
+}
 TEST(read_integer)
 {
 	Integer val;
 	
-	CHECK(read_integer ("0", val));
+	CHECK(read_integer_z ("0", val));
 	CHECK(val == 0);
 
-	CHECK(read_integer ("1", val));
+	CHECK(read_integer_z("1", val));
 	CHECK(val == 1);
 
-	CHECK(read_integer ("10", val));
+	CHECK(read_integer_z("10", val));
 	CHECK(val == 10);
 
-	CHECK(read_integer ("9999999", val));
+	CHECK(read_integer_z("9999999", val));
 	CHECK(val == 9999999);
 
-	CHECK(read_integer ("3242", val));
+	CHECK(read_integer_z("3242", val));
 	CHECK(val == 3242);
 
-	CHECK(read_integer("-1", val));
+	CHECK(read_integer_z("-1", val));
 	CHECK(val == -1);
 
-	CHECK(read_integer("-0", val));
+	CHECK(read_integer_z("-0", val));
 	CHECK(val == 0);
 	
-	CHECK(!read_integer("-", val));
+	CHECK(!read_integer_z("-", val));
 	
-	CHECK(!read_integer("a", val));
-	CHECK(!read_integer("123j", val));
-	CHECK(!read_integer("f887837", val));
-	CHECK(!read_integer(" 343242", val));
+	CHECK(!read_integer_z("a", val));
+	CHECK(!read_integer_z("123j", val));
+	CHECK(!read_integer_z("f887837", val));
+	CHECK(!read_integer_z(" 343242", val));
 }
 
 
@@ -77,7 +116,7 @@ TEST(accept_ident)
 	Runtime::State number = r.accept_ident("7");
 	CHECK(valid(number));
 	CHECK( number.cell->is_a(Cell::NUMBER));
-	CHECK( number.cell->m_union.u_int == 7);
+	CHECK( number.cell->number() == 7);
 }
 
 TEST(accept_string)
@@ -115,6 +154,68 @@ TEST(accept_list)
 
 TEST(runtime)
 {
+}
+
+TEST(function_plus)
+{
+	Runtime r;
+	Runtime::State state;
+	Cell* result;
+
+	state = r.accept_s_expression("(+ 1 2)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == 3);
+
+	state = r.accept_s_expression("(+ 9)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == 9);
+
+	state = r.accept_s_expression("(+ -34 -1)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == -35);
+
+	state = r.accept_s_expression("(+ 1 2 -13)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == -10);
+}
+
+TEST(function_minus)
+{
+	Runtime r;
+	Runtime::State state;
+	Cell* result;
+
+	state = r.accept_s_expression("(- 1 2)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == -1);
+
+	state = r.accept_s_expression("(- 9)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == -9);
+
+	state = r.accept_s_expression("(- -34 -1)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == -33);
+
+	state = r.accept_s_expression("(- 1 2 -13)");
+	CHECK(valid(state));
+	result = r.evaluate(state.cell);
+	CHECK(result->is_a(Cell::NUMBER));
+	CHECK(result->number() == 12);
 }
 
 int main(int argc, char** argv)
