@@ -17,11 +17,33 @@ typedef unsigned hash;
 
 class NoCopy
 {
-// Private copy CTORS with no implementation
-private:
+	// Private copy CTORS with no implementation
+	private:
 	NoCopy(const NoCopy& copy);
 	NoCopy& operator=(const NoCopy& copy);
-// Public non-copy CTOR
-public:
+	
+	// Public non-copy CTOR
+	public:
 	inline NoCopy () {}; 
+};
+
+template <typename Type>
+class Counted
+{
+	public:
+	static int	s_count;
+	static int	s_next;
+	int			m_object_number;
+
+	Counted ( void )
+	{
+		m_object_number = s_next;
+		s_count++;
+		s_next++;
+	}
+
+	~Counted ( void )
+	{
+		s_count--;
+	}
 };

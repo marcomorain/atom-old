@@ -2,6 +2,7 @@
 #include <JAssert.h>
 #include <Array.h>
 #include <Map.h>
+#include <JString.h>
 #include <Cell.h>
 
 /*
@@ -45,8 +46,68 @@ class Runtime : public NoCopy
 //  private: // members
 public:
 
+	// There is only ever one copy of a string.
+	Map<hash, String> m_strings;
 
-	Cell* m_nil;
+private:
+
+	enum
+	{
+		HASH_SEED = 5381
+	};
+
+	static char uppercase ( char c )
+	{
+		if ( 'a' <= c && c <= 'z' )
+		{
+			c -= ('a' - 'A');
+		}
+		return c;
+	}
+
+	template <bool force_uppercase>
+	static hash hash_string_internal ( const char* start, const char* end, hash seed = HASH_SEED)
+	{
+		jassert(start);
+		jassert(end);
+		jassert(start<end);
+
+		const char* current = start;
+		hash h = seed;
+		while (current < end)
+		{
+			const char c = force_uppercase ? uppercase(*current) : *current;
+			h = h * 33 ^ c;
+			current++;
+		}
+
+		return h;
+	}
+
+	template <bool force_uppercase>
+	hash hash_character_string ( const char* start, const char* end );
+
+public:
+
+	typedef enum
+	{
+		FORCE_UPPERCASE,
+		USE_EXACT_STRING
+
+	} case_policy;
+
+	
+	hash hash_string ( const char* start, const char* end )
+	{
+		return hash_character_string<false>(start, end);
+	}
+
+	hash hash_ident  ( const char* start, const char* end )
+	{
+		return hash_character_string<true>(start, end);
+	}
+
+
 	Cell* m_T;
 	
 	typedef Cell* (*Function)(Runtime&, Cell*);
@@ -59,7 +120,12 @@ public:
 
 	void register_function ( const char* name, Function func );
 
-	Cell* pushAtom ( char* atom );
+	Cell* read_atom ( const char* start, const char* end );
+
+	const char* get_string ( const hash h ) const
+	{
+		return m_strings.get(h).c_str();
+	}
 
   public: // functions
 
@@ -95,7 +161,12 @@ public:
 
 inline bool nil ( Cell* cell )
 {
-	return ! ( cell && ( car(cell) || cdr(cell) ) );
+	if (!cell) return false;
+	if (cell->is_a(Cell::LIST))
+	{
+		return !(car(cell) || cdr(cell));
+	}
+	return false;
 }
 
 inline bool valid ( const Runtime::State& state )
@@ -107,5 +178,5 @@ inline bool valid ( const Runtime::State& state )
 bool atom_char ( const char c );
 bool white_space_char ( const char c );
 const char* skip_whitespace ( const char* input );
-bool read_integer (const char* string, Integer& value);
+bool read_integer (const char* start, const char* end, Integer& value);
 

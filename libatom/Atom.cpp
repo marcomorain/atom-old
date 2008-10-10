@@ -1,6 +1,6 @@
 #include <cstdlib>
 #include <iostream>
-#include <string>
+#include <cstring>
 #include <JAssert.h>
 using namespace std;
 #include <Atom.h>
@@ -10,9 +10,6 @@ const static Runtime::State no_match = {0,0};
 
 Runtime::Runtime ( void )
 {
-	m_nil = new Cell(Cell::LIST);
-	m_nil->set_atom_name("nil");
-
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
@@ -22,8 +19,11 @@ Runtime::Runtime ( void )
 	register_function("STRINGP",	function_stringp);
 	register_function("IF",			function_if);
 	register_function("+",			function_plus);
+	register_function("-",			function_minus);
 	register_function("LOAD",		function_load);
 	register_function("DEFUN",		function_defun);
+	register_function(">",			function_greater_than);
+	register_function("<",			function_less_than);
 }
 
 Runtime::~Runtime ( void )
@@ -39,9 +39,14 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 Cell* Runtime::call_function (Cell* function, Cell* params )
 {
 	jassert(function);
-	jassert(function->atom_name());
 
-	const hash h = hash_string(function->atom_name());
+	if (!function->is_a(Cell::IDENT))
+	{
+		cerr << "Error: " << function << " is not a function." << endl;
+		return null;
+	}
+
+	const hash h = function->name();
 
 	Function built_in = m_builtins.get(h, null);
 
@@ -63,7 +68,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 
 void Runtime::register_function ( const char* name, Runtime::Function func )
 {
-	m_builtins[ hash_string(name) ] = func;
+	m_builtins[ hash_ident(name, name+strlen(name)) ] = func;
 }
 
 Cell* Runtime::evaluate( Cell* cell )
@@ -114,26 +119,27 @@ bool Runtime::parse_and_evaluate ( const char* input )
 	return success;
 }
 
-Cell* Runtime::pushAtom ( char* atom )
+Cell* Runtime::read_atom ( const char* start, const char* end )
 {
 	Integer val;
 
-	if (read_integer(atom, val))
+	if (read_integer(start, end, val))
 	{
 		// cell
 		Cell* atom_cell = new Cell(Cell::NUMBER);
-		atom_cell->m_union.u_int = val;
+		atom_cell->number() = val;
 		return atom_cell;
 	}
 	else
 	{
-		const hash h = hash_string(atom);
+		const hash h = hash_ident(start, end);
 		Cell* atom_cell = m_symbols.get(h, null);
 		if (!atom_cell)
 		{
 			// cell
-			atom_cell = new Cell(Cell::IDENT, atom);
-			m_symbols[hash_string(atom)] = atom_cell;
+			atom_cell = new Cell(Cell::IDENT, h);
+			atom_cell->set_atom_name(string(start, end));
+			m_symbols[h] = atom_cell;
 		}
 		else
 		{
@@ -143,34 +149,35 @@ Cell* Runtime::pushAtom ( char* atom )
 	}
 }
 
-bool read_integer (const char* string, Integer& value)
+bool read_integer (const char* start, const char* end, Integer& value)
 {
-	jassert(string);
-	jassert(strlen(string)>0);
+	jassert(start);
+	jassert(end);
+	jassert(start < end);
 
 	const Integer base = 10;
 	Integer accum = 0;
 
 	Integer sign = 1;
 
-	if (string[0] == '-')
+	if (start[0] == '-')
 	{
 		sign = -1;
-		string++;
-		if (string[0] == 0)
+		start++;
+		if (start == end)
 		{
 			return false;
 		}
 	}
 
-	while (*string)
+	while (start < end)
 	{
-		accum *= base;
-		const char c = (*string);
+		const char c = (*start);
 		if (c < '0') return false;
 		if (c > '9') return false;
+		accum *= base;
 		accum += (c - '0');
-		string++;
+		start++;
 	}
 
 	// only update value if the input was valid;
@@ -188,6 +195,8 @@ bool atom_char ( const char c )
 	if (c == '+') return true;
 	if (c == '-') return true;
 	if (c == '?') return true;
+	if (c == '>') return true;
+	if (c == '<') return true;
 	return false;
 }
 
@@ -207,6 +216,45 @@ const char* skip_whitespace ( const char* input )
 {
 	while ( white_space_char ( *input ) ) input++;
 	return input;
+}
+
+template <bool force_uppercase>
+hash Runtime::hash_character_string ( const char* start, const char* end )
+{
+	jassert(start);
+	jassert(end);
+	jassert(start<end);
+
+	hash h = hash_string_internal<force_uppercase>(start, end);
+
+	const size_t length = end - start;
+
+	while (true)
+	{
+		if (m_strings.has_key(h))
+		{
+			if (0 == _strnicmp(m_strings[h].c_str(), start, length))	
+			{
+				// String is already in the map, the hash is ok
+				return h;
+			}
+			else
+			{
+				// collision, re-hash
+				String str(start, end);
+				cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
+				h = hash_string_internal<force_uppercase>(start, end, h);
+			}
+		}
+		else
+		{
+			// add the string
+			m_strings[h] = String(start, end);
+		}
+
+	};
+
+	return h;
 }
 
 Runtime::State Runtime::accept_quoted_s_exp ( const char* input )
@@ -255,18 +303,11 @@ Runtime::State Runtime::accept_string ( const char* input )
 		if (*end == 0) return no_match;
 	}
 
-	const int length = end - start;
-	char* s = (char*)malloc(length+1);
-	strncpy(s, start, length);
-	s[length] = 0;
+	hash h = hash_string(start, end);
 
-	// todo: make functions take "start, end" char*
-	// to avoid this alloction
-	
-	
 	State state;
 	state.input = end + 1;
-	state.cell	= new Cell(Cell::STRING, s);
+	state.cell	= new Cell(Cell::STRING, h);
 	state.cell->set_atom_name("A string atom");
 	return state;
 }
@@ -288,26 +329,10 @@ Runtime::State Runtime::accept_ident ( const char* input )
 		return no_match;
 	}
 
-	char* atom = (char*)malloc(length+1);
-	strncpy(atom, start, length);
-	atom[length] = null; // null terminal
-
-	// to upper case
-	{
-		char* current = atom;
-		while (*current)
-		{
-			if ( (*current >= 'a') && (*current <= 'z'))
-			{
-				*current -= ('a' - 'A');
-			}
-			current++;
-		}
-	}
-
-	// todo: make push atom accept a start,end char* pair
+	// todo: make read_atom return a state, rename to accept atom
+	// maybe inline here
 	State state;
-	state.cell	= pushAtom(atom);
+	state.cell	= read_atom(start, end);
 	state.input = end; 
 	return state;
 }

@@ -1,7 +1,14 @@
 #include <Atom.h>
+#include <Functions.h>
+
 #include <iostream>
-using namespace std;
 #include <cstdlib>
+using namespace std;
+
+Cell* function_quote ( Runtime& runtime, Cell* params )
+{
+	return params;
+}
 
 Cell* function_setf ( Runtime& runtime, Cell* params )
 {
@@ -32,7 +39,7 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 	}
 	else
 	{
-		return runtime.m_nil;
+		return new Cell(Cell::LIST);
 	}
 }
 
@@ -40,11 +47,11 @@ Cell* function_if ( Runtime& runtime, Cell* params )
 {
 	Cell* result = runtime.evaluate( car (params) );
 
-	bool condition = result && (result != runtime.m_nil);
+	bool condition = nil(result);
 
 	if (condition && result->is_a(Cell::NUMBER))
 	{
-		condition = ( result->m_union.u_int != 0 );
+		condition = ( result->number() != 0 );
 	}
 
 	if (condition)
@@ -64,10 +71,79 @@ Cell* function_plus	( Runtime& runtime, Cell* params )
 	while (current)
 	{
 		Cell* number = runtime.evaluate(car(current));
-		result->m_union.u_int += number->m_union.u_int;
+		result->number() += number->number();
 		current = cdr(current);
 	}
 	return result;
+}
+
+Cell* function_minus ( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* nextp  = cdr(params);
+
+	if (!nextp)
+	{
+		Cell* result = new Cell(Cell::NUMBER);
+		result->number() = -car(params)->number();
+		return result;
+	}
+
+	jassert(car(params));
+	Cell* accum = runtime.evaluate(car(params));
+	
+	while (nextp)
+	{
+		Cell* number = runtime.evaluate(car(nextp));
+		accum->number() -= number->number();
+		nextp = cdr(nextp);
+	}
+	return accum;
+}
+
+// Return T if its arguments are in strictly increasing order, NIL otherwise. 
+Cell* function_greater_than ( Runtime& runtime, Cell* params )
+{		
+	Cell* first  = runtime.evaluate(car(params));
+	jassert(first);
+
+	if (!cdr(params))
+	{
+		return runtime.m_T;
+	}
+
+	Cell* second =  runtime.evaluate(car(cdr(params)));
+	jassert(second);
+
+	if ( first->number() <= second->number() )
+	{
+		return null;
+	}
+
+	return function_greater_than ( runtime, cdr(params));
+}
+
+//  Return T if its arguments are in strictly decreasing order, NIL otherwise. 
+Cell* function_less_than ( Runtime& runtime, Cell* params )
+{		
+	Cell* first  = runtime.evaluate(car(params));
+	jassert(first);
+
+	if (!cdr(params))
+	{
+		return runtime.m_T;
+	}
+
+	Cell* second =  runtime.evaluate(car(cdr(params)));
+	jassert(second);
+
+	if ( first->number() >= second->number() )
+	{
+		return null;
+	}
+
+	return function_less_than ( runtime, cdr(params));
 }
 
 Cell* function_load ( Runtime& runtime,	Cell* params )
@@ -76,7 +152,7 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 	Cell* filename = car(params);
 	jassert(filename);
 
-	FILE* file = fopen(filename->m_union.u_string, "r");
+	FILE* file = fopen( runtime.get_string(filename->m_union.u_string), "r");
 
 	if (!file)
 	{
@@ -98,7 +174,7 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 		result = runtime.parse_and_evaluate(buffer);
 	}
 	delete [] buffer;
-	return result ? runtime.m_T : runtime.m_nil;
+	return result ? runtime.m_T : new Cell(Cell::LIST);
 }
 
 Cell* function_defun	( Runtime& runtime, Cell* params )

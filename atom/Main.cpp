@@ -2,12 +2,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
-#include <string>
+#include <cstring>
 #include <Atom.h>
 using namespace std;
 
 int main (int argc, char** argv)
 {
+	clog << "Size Of Cell " << sizeof(Cell) << " bytes." << endl;
 	Runtime runtime;
 	//runtime.parse("(a b (c d) e)");
 

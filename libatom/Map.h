@@ -2,18 +2,6 @@
 #include <JAssert.h>
 #include <Array.h>
 
-inline hash hash_string (const char* str )
-{
-	jassert(str);
-	hash h = 5381;
-	while (*str)
-	{
-		h = h * 33 ^ *str;
-		str++;
-	}
-	return h;
-}
-
 template <typename Key, typename Data>
 class Map
 {
