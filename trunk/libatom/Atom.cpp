@@ -114,12 +114,12 @@ void write_integer ( Array<char>& output, Integer value )
 
 void Runtime::to_string ( Array<char>& output, Cell* cell )
 {
-	to_string_recursive(output, cell, Cell::INVALID);
+	to_string_recursive(output, cell, true);
 	output.push_back('\n'); // null terminate
 	output.push_back('\0'); // null terminate
 }
 
-void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, Cell::Type last_type )
+void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, bool head_of_list)
 {
 	if (!cell)
 	{
@@ -131,28 +131,27 @@ void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, Cell::Type 
 	{
 		case Cell::LIST:
 		{
-			if (!cell->is_a(last_type))
+			if (head_of_list)
 			{
 				append(output, "(");
 			}
 
 			if (car(cell))
 			{
-				to_string_recursive(output, car(cell), cell->m_type);
+				to_string_recursive(output, car(cell), car(cell)->is_a(Cell::LIST) );
 			}
 			else
 			{
 				append(output, "NIL");
 			}
 
-			append(output, " ");
-
 			if (cdr(cell))
 			{
-				to_string_recursive(output, cdr(cell), cell->m_type);
+				append(output, " ");
+				to_string_recursive(output, cdr(cell), car(cell)->is_a(Cell::LIST));
 			}
 
-			if (!cell->is_a(last_type))
+			if (head_of_list)
 			{
 				append(output, ")");
 			}
