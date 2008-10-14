@@ -1,5 +1,5 @@
 #pragma once
-#include <JAssert.h>
+#include <Tools/Assert.h>
 
 class String
 {

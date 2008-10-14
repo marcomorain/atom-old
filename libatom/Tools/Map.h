@@ -1,6 +1,6 @@
 #pragma once
-#include <JAssert.h>
-#include <Array.h>
+#include <Tools/Assert.h>
+#include <Tools/Array.h>
 
 template <typename Key, typename Data>
 class Map

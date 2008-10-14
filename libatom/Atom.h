@@ -1,8 +1,8 @@
 #pragma once
-#include <JAssert.h>
-#include <Array.h>
-#include <Map.h>
-#include <JString.h>
+#include <Tools/Assert.h>
+#include <Tools/Array.h>
+#include <Tools/Map.h>
+#include <Tools/String.h>
 #include <Cell.h>
 
 /*
@@ -41,6 +41,22 @@ Atom = ( {Atom Char} | '\'{Printable} )+
 	<quoted-s-epr>	=>	'`' <s-epr>
 */
 
+
+class Output
+{
+	public:
+	virtual void print ( const char* str) = 0;
+	virtual ~Output ( void ){};
+};
+
+class StandardOutput : public Output
+{
+	virtual void print ( const char* str )
+	{
+		printf(str);
+	}
+};
+
 class Runtime : public NoCopy
 {
 //  private: // members
@@ -48,6 +64,10 @@ public:
 
 	// There is only ever one copy of a string.
 	Map<hash, String> m_strings;
+
+	Output* m_output;
+
+	void set_output ( Output* output );
 
 private:
 
@@ -136,6 +156,8 @@ public:
 
 	Cell* funcall ( Cell* func, Cell* params );
 
+	void to_string ( Array<char>& output, Cell* cell );
+	void to_string_recursive ( Array<char>& output, Cell* cell, Cell::Type last_type  );
 
 	bool parse_and_evaluate ( const char* input );
 

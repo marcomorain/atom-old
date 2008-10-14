@@ -1,6 +1,7 @@
 #pragma once
-#include <Map.h>
-#include <JAssert.h>
+#include <Tools/Map.h>
+#include <Tools/Assert.h>
+#include <Tools/String.h>
 #include <ostream>
 
 class Cell : public NoCopy, public Counted<Cell>
@@ -34,6 +35,7 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	typedef enum
 	{
+		INVALID		= 0,
 		ATOM		= 1<<0,
 		STRING		= 1<<1,
 		NUMBER		= 1<<2,
@@ -45,7 +47,7 @@ class Cell : public NoCopy, public Counted<Cell>
 	} Type;
 
 	CellUnion	m_union;
-	std::string	m_atom_name;
+	String		m_atom_name;
 
 //private:
 	const Type	m_type;
@@ -106,8 +108,10 @@ class Cell : public NoCopy, public Counted<Cell>
 		return m_atom_name.c_str();
 	}
 
-	void set_atom_name ( const std::string& name );
-	
+	void set_atom_name ( const char* start, const char* end );
+	void set_atom_name ( const char* name );
+
+
 	inline Cell* car () const
 	{
 		jassert(is_a(LIST));
@@ -132,9 +136,6 @@ class Cell : public NoCopy, public Counted<Cell>
 		return m_union.u_cons.m_cdr;
 	}
 };
-
-std::ostream& operator << ( std::ostream& os, Cell* cell );
-
 
 
 inline Cell* car ( const Cell* cell )

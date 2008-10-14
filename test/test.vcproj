@@ -249,6 +249,10 @@
 	</References>
 	<Files>
 		<File
+			RelativePath=".\array.cpp"
+			>
+		</File>
+		<File
 			RelativePath=".\test.cpp"
 			>
 		</File>

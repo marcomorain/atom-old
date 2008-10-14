@@ -5,9 +5,54 @@
 #include <cstdlib>
 using namespace std;
 
+Cell* function_apply		( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* function = car(params);
+	Cell* rest = cdr(params);
+	rest = runtime.evaluate(rest);
+	return runtime.call_function(function, rest);
+}
+
 Cell* function_quote ( Runtime& runtime, Cell* params )
 {
-	return params;
+	return car(params);
+}
+
+Cell* function_cons	( Runtime& runtime, Cell* params )
+{
+	Cell* cons = new Cell(Cell::LIST);
+
+	// requires 2 params
+	jassert(params);
+	jassert(cdr(params));
+
+	Cell* param1 = runtime.evaluate( car(params) );
+	Cell* param2 = runtime.evaluate( car(cdr(params)) );
+
+	car(cons) = param1;
+	cdr(cons) = param2;
+	return cons;
+}
+
+Cell* function_length		( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* list = runtime.evaluate(params);
+	jassert(list);
+	jassert(list->is_a(Cell::LIST));
+
+	int length = 0;
+
+	while (list)
+	{
+		length++;
+		list=cdr(list);
+	}
+
+	Cell* result = new Cell(Cell::NUMBER);
+	result->number() = length;
+	return result;
 }
 
 Cell* function_setf ( Runtime& runtime, Cell* params )
@@ -177,13 +222,3 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 	return result ? runtime.m_T : new Cell(Cell::LIST);
 }
 
-Cell* function_defun	( Runtime& runtime, Cell* params )
-{
-	// m_functions
-	Cell* name = car(params);
-	Cell* body = cdr(params);
-	jassert(name);
-	jassert(body);
-	runtime.m_functions[name->m_union.u_ident.m_name] = body;
-	return name;
-}
