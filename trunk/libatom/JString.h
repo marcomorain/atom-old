@@ -58,6 +58,14 @@ public:
 		return end - m_data;
 	}
 
+	static void swap ( String& a, String& b )
+	{
+		if (&a != &b)
+		{
+			std::swap(a.m_data, b.m_data);
+		}
+	}
+
 
 private:
 
@@ -95,3 +103,11 @@ private:
 	// Zero terminated
 	char* m_data;
 };
+
+namespace std
+{
+	template <> inline void swap(String& a, String& b)
+	{
+		String::swap(a,b);
+	}
+}

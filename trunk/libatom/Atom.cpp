@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
-#include <JAssert.h>
+#include <Tools/Assert.h>
 using namespace std;
 #include <Atom.h>
 #include <Functions.h>
@@ -13,22 +13,35 @@ Runtime::Runtime ( void )
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
+	m_output = new StandardOutput();
+
+	register_function("APPLY",		function_apply);
 	register_function("SETF",		function_setf);
 	register_function("CAR",		function_car);
 	register_function("CDR",		function_cdr);
+	register_function("CONS",		function_cons);
 	register_function("STRINGP",	function_stringp);
 	register_function("IF",			function_if);
 	register_function("+",			function_plus);
 	register_function("-",			function_minus);
 	register_function("LOAD",		function_load);
-	register_function("DEFUN",		function_defun);
 	register_function(">",			function_greater_than);
 	register_function("<",			function_less_than);
+	register_function("QUOTE",		function_quote);
+	register_function("LENGTH",		function_length);
+
 }
 
 Runtime::~Runtime ( void )
 {
 }
+
+void Runtime::set_output ( Output* output )
+{
+	delete m_output;
+	m_output = output;
+}
+
 
 Cell* Runtime::funcall ( Cell* func, Cell* params )
 {
@@ -71,6 +84,111 @@ void Runtime::register_function ( const char* name, Runtime::Function func )
 	m_builtins[ hash_ident(name, name+strlen(name)) ] = func;
 }
 
+void append ( Array<char>& output, const char* str )
+{
+	while (*str)
+	{
+		output.push_back(*str);
+		str++;
+	}
+}
+
+void write_integer ( Array<char>& output, Integer value )
+{
+	Array<char> stack;
+	stack.reserve(10);
+	
+	do
+	{
+		stack.push_back( '0' + (value % 10) );
+		value /= 10;
+
+	} while (value > 10);
+
+	while (stack.size())
+	{
+		output.push_back(stack.back());
+		stack.pop_back();
+	}
+}
+
+void Runtime::to_string ( Array<char>& output, Cell* cell )
+{
+	to_string_recursive(output, cell, Cell::INVALID);
+	output.push_back('\n'); // null terminate
+	output.push_back('\0'); // null terminate
+}
+
+void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, Cell::Type last_type )
+{
+	if (!cell)
+	{
+		append(output, "NIL");
+		return;
+	}
+
+	switch (cell->m_type)
+	{
+		case Cell::LIST:
+		{
+			if (!cell->is_a(last_type))
+			{
+				append(output, "(");
+			}
+
+			if (car(cell))
+			{
+				to_string_recursive(output, car(cell), cell->m_type);
+			}
+			else
+			{
+				append(output, "NIL");
+			}
+
+			append(output, " ");
+
+			if (cdr(cell))
+			{
+				to_string_recursive(output, cdr(cell), cell->m_type);
+			}
+
+			if (!cell->is_a(last_type))
+			{
+				append(output, ")");
+			}
+		}
+		break;
+
+	case Cell::ATOM:
+	case Cell::IDENT:
+		append(output, cell->atom_name());
+		break;
+
+	case Cell::STRING:
+		{
+			const char* str = m_strings.get(cell->m_union.u_string).c_str();
+			append(output, "\"");
+			append(output, str);
+			append(output, "\"");
+		}
+		break;
+
+	case Cell::NUMBER:
+		write_integer(output, cell->number());
+		break;
+
+	case Cell::TRUE:
+		append(output, "T");
+		break;
+
+	default:
+		append(output, "Default");
+		break;
+	}
+
+}
+
+
 Cell* Runtime::evaluate( Cell* cell )
 {
 	if (nil(cell))
@@ -79,14 +197,19 @@ Cell* Runtime::evaluate( Cell* cell )
 	}
 	else if (cell->is_a(Cell::LIST))
 	{
-		Cell* function	= car ( cell );
-		return call_function( car(function), cdr (function ) );
+		Cell* name		= car(cell);
+		Cell* params	= cdr(cell);
+		return call_function( name, params);
 	}
 	else if (cell->is_a(Cell::IDENT))
 	{
 		return cell->m_union.u_ident.m_value;
 	}
 	else if (cell->is_a(Cell::NUMBER))
+	{
+		return cell;
+	}
+	else if (cell->is_a(Cell::STRING))
 	{
 		return cell;
 	}
@@ -112,7 +235,10 @@ bool Runtime::parse_and_evaluate ( const char* input )
 		{
 			success = true;
 			Cell* result = evaluate(state.cell);
-			cout << result << endl;
+
+			Array<char> output;
+			to_string(output, result);
+			m_output->print(output.begin());
 		}
 	}
 
@@ -138,12 +264,8 @@ Cell* Runtime::read_atom ( const char* start, const char* end )
 		{
 			// cell
 			atom_cell = new Cell(Cell::IDENT, h);
-			atom_cell->set_atom_name(string(start, end));
+			atom_cell->set_atom_name(start, end);
 			m_symbols[h] = atom_cell;
-		}
-		else
-		{
-			atom_cell = atom_cell;
 		}
 		return atom_cell;
 	}
@@ -229,6 +351,8 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 
 	const size_t length = end - start;
 
+	String str(start, end);
+
 	while (true)
 	{
 		if (m_strings.has_key(h))
@@ -241,7 +365,6 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 			else
 			{
 				// collision, re-hash
-				String str(start, end);
 				cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
 				h = hash_string_internal<force_uppercase>(start, end, h);
 			}
@@ -249,7 +372,7 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 		else
 		{
 			// add the string
-			m_strings[h] = String(start, end);
+			std::swap( m_strings[h], str );
 		}
 
 	};
@@ -259,9 +382,6 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 
 Runtime::State Runtime::accept_quoted_s_exp ( const char* input )
 {
-	// todo test this!
-	//jassert(0);
-
 	jassert(input);
 
 	if (*input == 0) return no_match;
@@ -274,11 +394,21 @@ Runtime::State Runtime::accept_quoted_s_exp ( const char* input )
 	}
 
 	Cell* quote = new Cell(Cell::LIST);
+	Cell* rest  = new Cell(Cell::LIST);
 
 	State state = accept_s_expression(input+1);
 	jassert(valid(state));
 	
-	car(quote) = state.cell;
+	const char* quote_start = "QUOTE";
+	const char* quote_end   = quote_start + strlen("QUOTE");
+
+	car(quote) = new Cell(Cell::IDENT, hash_ident(quote_start, quote_end));
+	car(quote)->set_atom_name("QUOTE");
+	cdr(quote) = rest;
+
+	car(rest) = state.cell;
+	cdr(rest) = null;
+
 	state.cell = quote;
 
 	return state;
@@ -386,7 +516,7 @@ Runtime::State Runtime::accept_list ( const char* input )
 		return nil;
 	}
 
-	Cell* head = new Cell(Cell::LIST);
+	//Cell* head = new Cell(Cell::LIST);
 
 	State state = accept_series(input);
 	
@@ -411,8 +541,8 @@ Runtime::State Runtime::accept_list ( const char* input )
 		return no_match;
 	}
 
-	car(head) = state.cell;
-	state.cell = head;
+	//car(head) = state.cell;
+	//state.cell = head;
 	state.input = input+1;
 	return state;
 }

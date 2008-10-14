@@ -1,7 +1,7 @@
 #if defined  NDEBUG
 // No asserts...
 #else
-#include <JAssert.h>
+#include <Tools/Assert.h>
 #include <iostream>
 
 void Assert::Fail(const char* file, const unsigned line, const char* message)

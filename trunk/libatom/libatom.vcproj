@@ -242,23 +242,27 @@
 			Name="Tools"
 			>
 			<File
-				RelativePath=".\Array.h"
+				RelativePath=".\Tools\Array.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Compiler.h"
+				RelativePath=".\Tools\Assert.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\JAssert.cpp"
+				RelativePath=".\Tools\Assert.h"
 				>
 			</File>
 			<File
-				RelativePath=".\JAssert.h"
+				RelativePath=".\Tools\Compiler.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Map.h"
+				RelativePath=".\Tools\Map.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Tools\String.h"
 				>
 			</File>
 		</Filter>
