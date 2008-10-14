@@ -157,7 +157,7 @@ public:
 	Cell* funcall ( Cell* func, Cell* params );
 
 	void to_string ( Array<char>& output, Cell* cell );
-	void to_string_recursive ( Array<char>& output, Cell* cell, Cell::Type last_type  );
+	void to_string_recursive ( Array<char>& output, Cell* cell, bool head_of_list);
 
 	bool parse_and_evaluate ( const char* input );
 
