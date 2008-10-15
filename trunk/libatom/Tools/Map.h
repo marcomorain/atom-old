@@ -36,17 +36,20 @@ public:
 		return m_data.back().m_data;
 	}
 
-	Data get ( const Key& key ) const
+	const Data& get ( const Key& key ) const
 	{
 		jassert(has_key(key));
 		for (int i=0; i<m_data.size(); i++)
 		{
-			if (m_data[i].m_key == key) return m_data[i].m_data;
+			if (m_data[i].m_key == key)
+			{
+				return m_data[i].m_data;
+			}
 		}
 		BREAKPOINT();
 	}
 
-	Data get (const Key& key, const Data& default ) const
+	const Data& get (const Key& key, const Data& default ) const
 	{
 		for (int i=0; i<m_data.size(); i++)
 		{

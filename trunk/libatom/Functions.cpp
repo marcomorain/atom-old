@@ -76,6 +76,65 @@ Cell* function_cdr	( Runtime& runtime, Cell* params )
 	return cdr(params);
 }
 
+Cell* function_eq ( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	jassert(cdr(params));
+
+	Cell* first		= car(params);
+	Cell* second	= car(cdr(params));
+
+	jassert(first);
+	jassert(second);
+
+	if ( first->m_type != second->m_type )
+	{
+		return new Cell(Cell::LIST);
+	}
+
+	if (first->is_a(Cell::LIST))
+	{
+		if (first == second)
+		{
+			return runtime.m_T;
+		}
+
+		return new Cell(Cell::LIST);
+	}
+	
+	if (first->is_a(Cell::IDENT))
+	{
+		if ( first->m_union.u_ident.m_value == second->m_union.u_ident.m_value )
+		{
+			return runtime.m_T;
+		}
+		return new Cell(Cell::LIST);
+	}
+
+	if (first->is_a(Cell::NUMBER))
+	{
+		if ( first->m_union.u_int == second->m_union.u_int )
+		{
+			return runtime.m_T;
+		}
+		return new Cell(Cell::LIST);
+	}
+
+	const bool second_number = second->is_a(Cell::NUMBER);
+
+	if ( second->is_a(Cell::STRING) )
+	{
+		if ( first->m_union.u_string == first->m_union.u_string )
+		{
+			return runtime.m_T;
+		}
+		return new Cell(Cell::LIST);
+	}
+
+	jassert(0);
+	return new Cell(Cell::LIST);
+}
+
 Cell* function_stringp	( Runtime& runtime, Cell* params )
 {
 	if ( params->is_a(Cell::STRING))
