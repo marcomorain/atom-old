@@ -11,7 +11,7 @@ Cell* function_cdr			( Runtime& runtime, Cell* params );
 Cell* function_cons			( Runtime& runtime, Cell* params );
 // defmacro
 // documentation
-// eq
+Cell* function_eq ( Runtime& runtime, Cell* params );
 // error
 // expt
 // fdefinition

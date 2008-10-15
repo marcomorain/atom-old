@@ -20,6 +20,7 @@ Runtime::Runtime ( void )
 	register_function("CAR",		function_car);
 	register_function("CDR",		function_cdr);
 	register_function("CONS",		function_cons);
+	register_function("EQ",			function_eq);
 	register_function("STRINGP",	function_stringp);
 	register_function("IF",			function_if);
 	register_function("+",			function_plus);
@@ -233,11 +234,20 @@ bool Runtime::parse_and_evaluate ( const char* input )
 		else
 		{
 			success = true;
+
+			{
+				Array<char> output;
+				to_string(output, state.cell);
+				m_output->print(output.begin());
+			}
+
 			Cell* result = evaluate(state.cell);
 
-			Array<char> output;
-			to_string(output, result);
-			m_output->print(output.begin());
+			{
+				Array<char> output;
+				to_string(output, result);
+				m_output->print(output.begin());
+			}
 		}
 	}
 
