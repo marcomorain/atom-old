@@ -27,11 +27,12 @@ Cell* function_cons	( Runtime& runtime, Cell* params )
 	jassert(params);
 	jassert(cdr(params));
 
-	Cell* param1 = runtime.evaluate( car(params) );
-	Cell* param2 = runtime.evaluate( car(cdr(params)) );
+	Cell* first		= car(params);
+	Cell* second	= car(cdr(params));
 
-	car(cons) = param1;
-	cdr(cons) = param2;
+	car(cons) = runtime.evaluate( first );
+	cdr(cons) = runtime.evaluate( second );
+
 	return cons;
 }
 
@@ -54,6 +55,42 @@ Cell* function_length		( Runtime& runtime, Cell* params )
 	result->number() = length;
 	return result;
 }
+
+Cell* function_imagpart	( Runtime& runtime, Cell* params )
+{
+	BREAKPOINT();
+}
+
+Cell* function_realpart		( Runtime& runtime, Cell* params )
+{
+	BREAKPOINT();
+}
+
+Cell* function_error ( Runtime& runtime, Cell* params )
+{
+	BREAKPOINT();
+}
+
+Cell* function_nth_value	( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* count   = car(params);
+	Cell* current = runtime.evaluate(car(cdr(params)));
+
+	jassert(count->is_a(Cell::NUMBER));
+
+	Integer i = count->number();
+
+	jassert(i > -1);
+
+	while (i--)
+	{
+		current = cdr(current);
+	}
+
+	return car(current);
+}
+
 
 Cell* function_setf ( Runtime& runtime, Cell* params )
 {
@@ -149,9 +186,11 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 
 Cell* function_if ( Runtime& runtime, Cell* params )
 {
+	jassert(params);
+
 	Cell* result = runtime.evaluate( car (params) );
 
-	bool condition = nil(result);
+	bool condition = !nil(result);
 
 	if (condition && result->is_a(Cell::NUMBER))
 	{
@@ -230,7 +269,8 @@ Cell* function_greater_than ( Runtime& runtime, Cell* params )
 
 //  Return T if its arguments are in strictly decreasing order, NIL otherwise. 
 Cell* function_less_than ( Runtime& runtime, Cell* params )
-{		
+{	
+	jassert(params);
 	Cell* first  = runtime.evaluate(car(params));
 	jassert(first);
 

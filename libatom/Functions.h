@@ -12,7 +12,7 @@ Cell* function_cons			( Runtime& runtime, Cell* params );
 // defmacro
 // documentation
 Cell* function_eq ( Runtime& runtime, Cell* params );
-// error
+Cell* function_error ( Runtime& runtime, Cell* params );
 // expt
 // fdefinition
 // function
@@ -20,13 +20,13 @@ Cell* function_eq ( Runtime& runtime, Cell* params );
 // gensym
 // get-setf-expression
 Cell* function_if			( Runtime& runtime, Cell* params );
-// imagpart
+Cell* function_imagpart		( Runtime& runtime, Cell* params );
 // labels
 Cell* function_length		( Runtime& runtime, Cell* params );
 // multiple-value-bind
-// nth-value
+Cell* function_nth_value	( Runtime& runtime, Cell* params );
 Cell* function_quote		( Runtime& runtime, Cell* params );
-// realpart
+Cell* function_realpart		( Runtime& runtime, Cell* params );
 // symbol-function
 // tagbody
 // type-of
