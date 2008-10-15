@@ -21,8 +21,10 @@ Runtime::Runtime ( void )
 	register_function("CDR",		function_cdr);
 	register_function("CONS",		function_cons);
 	register_function("EQ",			function_eq);
+	register_function("ERROR",		function_error);
 	register_function("STRINGP",	function_stringp);
 	register_function("IF",			function_if);
+	register_function("NTH-VALUE",	function_nth_value);
 	register_function("+",			function_plus);
 	register_function("-",			function_minus);
 	register_function("LOAD",		function_load);
