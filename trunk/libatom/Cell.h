@@ -91,7 +91,7 @@ class Cell : public NoCopy, public Counted<Cell>
 	{
 	}
 
-	inline hash& name ( void )
+	inline const hash& name ( void )
 	{
 		jassert(is_a(IDENT));
 		return m_union.u_ident.m_name;
@@ -156,4 +156,20 @@ inline Cell*& car ( Cell* cell )
 inline Cell*& cdr ( Cell* cell )
 {
 	return cell->cdr();
+}
+
+inline bool nil ( Cell* cell )
+{
+	if (!cell) return true;
+	if (cell->is_a(Cell::LIST))
+	{
+		return !(car(cell) || cdr(cell));
+	}
+	return false;
+}
+
+inline bool listp ( Cell* cell )
+{
+	jassert(cell);
+	return cell->is_a(Cell::LIST) || nil(cell);
 }

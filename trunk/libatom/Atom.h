@@ -62,12 +62,25 @@ class Runtime : public NoCopy
 //  private: // members
 public:
 
+	enum
+	{
+		QUOTE_CHARACTER		= '\'',
+		BACKQUOTE_CHARACTER = '`',
+		COMMA_CHARACTER		= ','
+	};
+
 	// There is only ever one copy of a string.
 	Map<hash, String> m_strings;
 
 	Output* m_output;
 
+	hash m_quote_hash;
+	hash m_backquote_hash;
+	hash m_comma_hash;
+
 	void set_output ( Output* output );
+
+	const char* name ( Cell* ident ) const;
 
 private:
 
@@ -156,6 +169,8 @@ public:
 
 	Cell* funcall ( Cell* func, Cell* params );
 
+	Cell* replace_commas ( Cell* expression );
+
 	void to_string ( Array<char>& output, Cell* cell );
 	void to_string_recursive ( Array<char>& output, Cell* cell, bool head_of_list);
 
@@ -180,16 +195,6 @@ public:
 	State accept_s_expression	( const char* input );
 	State accept_dot			( const char* input );	
 };
-
-inline bool nil ( Cell* cell )
-{
-	if (!cell) return false;
-	if (cell->is_a(Cell::LIST))
-	{
-		return !(car(cell) || cdr(cell));
-	}
-	return false;
-}
 
 inline bool valid ( const Runtime::State& state )
 {

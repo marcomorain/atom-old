@@ -91,6 +91,31 @@ Cell* function_nth_value	( Runtime& runtime, Cell* params )
 	return car(current);
 }
 
+Cell* function_block ( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	jassert(car(params));
+	jassert(cdr(params));
+
+	Cell* block_name = runtime.evaluate( car(params) );
+
+	// todo: start a new block here, for return from
+	Cell* block = runtime.evaluate( cdr( params ) );
+
+	return block;
+}
+
+Cell* function_backquote	( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	return runtime.replace_commas(car(params));
+}
+
+Cell* function_return_from	( Runtime& runtime, Cell* params )
+{
+	jassert(0);
+	return null;
+}
 
 Cell* function_setf ( Runtime& runtime, Cell* params )
 {
