@@ -10,6 +10,19 @@ const static Runtime::State no_match = {0,0};
 
 Runtime::Runtime ( void )
 {
+	{
+		const char* quote_start		= "QUOTE";
+		const char* quote_end		= quote_start + strlen("QUOTE");
+		const char* backquote_start = "BACKQUOTE";
+		const char* backquote_end	= backquote_start + strlen("BACKQUOTE");
+		const char* comma_start		= "COMMA";
+		const char* comma_end		= comma_start + strlen("COMMA");
+
+		m_quote_hash		= hash_ident(quote_start,		quote_end);
+		m_backquote_hash	= hash_ident(backquote_start,	backquote_end);
+		m_comma_hash		= hash_ident(comma_start,		comma_end);
+	}
+
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
@@ -32,11 +45,54 @@ Runtime::Runtime ( void )
 	register_function("<",			function_less_than);
 	register_function("QUOTE",		function_quote);
 	register_function("LENGTH",		function_length);
-
+	register_function("BLOCK",		function_block);
+	register_function("RETURN-FROM",function_return_from);
+	register_function("BACKQUOTE",	function_backquote);
 }
 
 Runtime::~Runtime ( void )
 {
+}
+
+Cell* Runtime::replace_commas ( Cell* expression )
+{
+	if (!expression)
+	{
+		return expression;
+	}
+
+	if ( ! listp ( expression ) )
+	{
+		return expression;
+	}
+
+	Cell* first = car (expression);
+	
+	if ( first && first->is_a(Cell::IDENT))
+	{
+		if ( first->name() == m_comma_hash )
+		{
+			Cell* rest = car(cdr(expression));
+			return evaluate( replace_commas (rest) );
+		}
+		else if (first->name() == m_backquote_hash)
+		{
+			Cell* rest = car(cdr(expression));
+			return replace_commas(rest);
+		}
+	}
+	
+	if (car(expression))
+	{
+		car(expression) = replace_commas( car(expression) );
+	}
+
+	if (cdr(expression))
+	{
+		cdr(expression) = replace_commas( cdr(expression) );
+	}
+	
+	return expression;
 }
 
 void Runtime::set_output ( Output* output )
@@ -78,8 +134,14 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 		return funcall ( func, params );
 	}
 
-	cerr << "Function \"" << function->atom_name() << "\" could not be found." << endl;
+	cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
 	return null;
+}
+
+const char* Runtime::name ( Cell* cell ) const
+{
+	jassert(cell->is_a(Cell::IDENT));
+	return m_strings.get( cell->m_union.u_ident.m_name ).c_str();
 }
 
 void Runtime::register_function ( const char* name, Runtime::Function func )
@@ -163,7 +225,7 @@ void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, bool head_o
 
 	case Cell::ATOM:
 	case Cell::IDENT:
-		append(output, cell->atom_name());
+		append(output, name(cell));
 		break;
 
 	case Cell::STRING:
@@ -399,30 +461,47 @@ Runtime::State Runtime::accept_quoted_s_exp ( const char* input )
 
 	input = skip_whitespace(input);
 
-	if (*input != '`')
+	const char c = *input;
+
+	switch (c)
 	{
+		default:
 		return no_match;
+
+		case QUOTE_CHARACTER:
+		case BACKQUOTE_CHARACTER:
+		case COMMA_CHARACTER:
+		{
+			Cell* quote = new Cell(Cell::LIST);
+			Cell* rest  = new Cell(Cell::LIST);
+
+			State state = accept_s_expression(input+1);
+			jassert(valid(state));
+
+			hash h;
+			if		(c == QUOTE_CHARACTER)		h = m_quote_hash;
+			else if (c == BACKQUOTE_CHARACTER)	h = m_backquote_hash;
+			else if (c == COMMA_CHARACTER)		h = m_comma_hash;
+			else
+			{
+				jassert(0);
+			}
+
+			car(quote) = new Cell(Cell::IDENT, h);
+
+			if		(c == QUOTE_CHARACTER)		car(quote)->set_atom_name("QUOTE");
+			else if (c == BACKQUOTE_CHARACTER)	car(quote)->set_atom_name("BACKQUOTE");
+			else if (c == COMMA_CHARACTER)		car(quote)->set_atom_name("COMMA");
+
+			cdr(quote) = rest;
+			car(rest) = state.cell;
+			cdr(rest) = null;
+
+			state.cell = quote;
+
+			return state;
+		}
 	}
-
-	Cell* quote = new Cell(Cell::LIST);
-	Cell* rest  = new Cell(Cell::LIST);
-
-	State state = accept_s_expression(input+1);
-	jassert(valid(state));
-	
-	const char* quote_start = "QUOTE";
-	const char* quote_end   = quote_start + strlen("QUOTE");
-
-	car(quote) = new Cell(Cell::IDENT, hash_ident(quote_start, quote_end));
-	car(quote)->set_atom_name("QUOTE");
-	cdr(quote) = rest;
-
-	car(rest) = state.cell;
-	cdr(rest) = null;
-
-	state.cell = quote;
-
-	return state;
 }
 
 Runtime::State Runtime::accept_string ( const char* input )
