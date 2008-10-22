@@ -61,6 +61,7 @@ static inline bool read_integer_z(const char* s, Integer& val)
 {
 	return read_integer(s, s+strlen(s), val);
 }
+
 TEST(read_integer)
 {
 	Integer val;
@@ -119,6 +120,12 @@ TEST(accept_ident)
 	CHECK( number.cell->number() == 7);
 }
 
+TEST(skip_whitespace)
+{
+	const char* comment = "; a comment";
+	const char* end = skip_whitespace(comment);
+	CHECK(end == comment + strlen(comment));
+}
 TEST(accept_string)
 {
 	Runtime runtime;

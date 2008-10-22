@@ -10,29 +10,23 @@ const static Runtime::State no_match = {0,0};
 
 Runtime::Runtime ( void )
 {
-	{
-		const char* quote_start		= "QUOTE";
-		const char* quote_end		= quote_start + strlen("QUOTE");
-		const char* backquote_start = "BACKQUOTE";
-		const char* backquote_end	= backquote_start + strlen("BACKQUOTE");
-		const char* comma_start		= "COMMA";
-		const char* comma_end		= comma_start + strlen("COMMA");
-
-		m_quote_hash		= hash_ident(quote_start,		quote_end);
-		m_backquote_hash	= hash_ident(backquote_start,	backquote_end);
-		m_comma_hash		= hash_ident(comma_start,		comma_end);
-	}
-
+	m_quote_hash		= hash_ident("QUOTE");
+	m_backquote_hash	= hash_ident("BACKQUOTE");
+	m_comma_hash		= hash_ident("COMMA");
+	m_lambda_hash		= hash_ident("LAMBDA");
+	
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
-	m_output = new StandardOutput();
+	m_output = stdout;
 
 	register_function("APPLY",		function_apply);
 	register_function("SETF",		function_setf);
 	register_function("CAR",		function_car);
 	register_function("CDR",		function_cdr);
 	register_function("CONS",		function_cons);
+	register_function("DEFUN",		function_defun);
+	register_function("EVAL",		function_eval);
 	register_function("EQ",			function_eq);
 	register_function("ERROR",		function_error);
 	register_function("STRINGP",	function_stringp);
@@ -95,13 +89,6 @@ Cell* Runtime::replace_commas ( Cell* expression )
 	return expression;
 }
 
-void Runtime::set_output ( Output* output )
-{
-	delete m_output;
-	m_output = output;
-}
-
-
 Cell* Runtime::funcall ( Cell* func, Cell* params )
 {
 	return null;
@@ -148,47 +135,24 @@ void Runtime::register_function ( const char* name, Runtime::Function func )
 {
 	m_builtins[ hash_ident(name, name+strlen(name)) ] = func;
 }
-
-void append ( Array<char>& output, const char* str )
+void Runtime::def_macro ( hash h, Cell* params, Cell* body )
 {
-	while (*str)
-	{
-		output.push_back(*str);
-		str++;
-	}
+	Macro& m = m_macros[h];
+	m.params = params;
+	m.body   = body;
 }
 
-void write_integer ( Array<char>& output, Integer value )
+void Runtime::output( Cell* cell ) const
 {
-	Array<char> stack;
-	stack.reserve(10);
-	
-	do
-	{
-		stack.push_back( '0' + (value % 10) );
-		value /= 10;
-
-	} while (value > 10);
-
-	while (stack.size())
-	{
-		output.push_back(stack.back());
-		stack.pop_back();
-	}
+	output_recursive(cell, true);
+	fprintf(m_output, "\n");
 }
 
-void Runtime::to_string ( Array<char>& output, Cell* cell )
-{
-	to_string_recursive(output, cell, true);
-	output.push_back('\n'); // null terminate
-	output.push_back('\0'); // null terminate
-}
-
-void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, bool head_of_list)
+void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 {
 	if (!cell)
 	{
-		append(output, "NIL");
+		fprintf(m_output, "NIL");
 		return;
 	}
 
@@ -198,55 +162,50 @@ void Runtime::to_string_recursive ( Array<char>& output, Cell* cell, bool head_o
 		{
 			if (head_of_list)
 			{
-				append(output, "(");
+				fprintf(m_output, "(");
 			}
 
 			if (car(cell))
 			{
-				to_string_recursive(output, car(cell), car(cell)->is_a(Cell::LIST) );
+				output_recursive(car(cell), car(cell)->is_a(Cell::LIST) );
 			}
 			else
 			{
-				append(output, "NIL");
+				fprintf(m_output, "NIL");
 			}
 
 			if (cdr(cell))
 			{
-				append(output, " ");
-				to_string_recursive(output, cdr(cell), car(cell)->is_a(Cell::LIST));
+				fprintf(m_output, " ");
+				output_recursive(cdr(cell), car(cell)->is_a(Cell::LIST));
 			}
 
 			if (head_of_list)
 			{
-				append(output, ")");
+				fprintf(m_output, ")");
 			}
 		}
 		break;
 
 	case Cell::ATOM:
 	case Cell::IDENT:
-		append(output, name(cell));
+		fprintf(m_output, name(cell));
 		break;
 
 	case Cell::STRING:
-		{
-			const char* str = m_strings.get(cell->m_union.u_string).c_str();
-			append(output, "\"");
-			append(output, str);
-			append(output, "\"");
-		}
+		fprintf(m_output, "\"%s\"", m_strings.get(cell->m_union.u_string).c_str());
 		break;
 
 	case Cell::NUMBER:
-		write_integer(output, cell->number());
+		fprintf(m_output, "%d", cell->number());
 		break;
 
 	case Cell::TRUE:
-		append(output, "T");
+		fprintf(m_output, "T");
 		break;
 
 	default:
-		append(output, "Default");
+		fprintf(m_output, "Error: Default");
 		break;
 	}
 
@@ -259,24 +218,34 @@ Cell* Runtime::evaluate( Cell* cell )
 	{
 		return null;
 	}
-	else if (cell->is_a(Cell::LIST))
+
+	if (cell->is_a(Cell::LIST))
 	{
 		Cell* name		= car(cell);
 		Cell* params	= cdr(cell);
-		return call_function( name, params);
+
+		if (name->is_a(Cell::IDENT))
+		{
+			if (name->m_union.u_ident.m_name == m_lambda_hash)
+			{
+				return cell;
+			}
+			return call_function( name, params);
+		}
+
+		return null;
 	}
-	else if (cell->is_a(Cell::IDENT))
+
+	if (cell->is_a(Cell::IDENT))
 	{
 		return cell->m_union.u_ident.m_value;
 	}
-	else if (cell->is_a(Cell::NUMBER))
+
+	if (cell->is_a(Cell::NUMBER) || cell->is_a(Cell::STRING))
 	{
 		return cell;
 	}
-	else if (cell->is_a(Cell::STRING))
-	{
-		return cell;
-	}
+
 	jassert(0);
 	return null;
 }
@@ -298,20 +267,9 @@ bool Runtime::parse_and_evaluate ( const char* input )
 		else
 		{
 			success = true;
-
-			{
-				Array<char> output;
-				to_string(output, state.cell);
-				m_output->print(output.begin());
-			}
-
+			output(state.cell);
 			Cell* result = evaluate(state.cell);
-
-			{
-				Array<char> output;
-				to_string(output, result);
-				m_output->print(output.begin());
-			}
+			output(result);
 		}
 	}
 
@@ -395,22 +353,38 @@ bool atom_char ( const char c )
 	return false;
 }
 
-bool white_space_char ( const char c )
-{
-	switch (c)
-	{
-		case '\n':
-		case '\r':
-		case '\t':
-		case ' ': return true;
-		default:  return false;
-	}
-}
-
 const char* skip_whitespace ( const char* input )
 {
-	while ( white_space_char ( *input ) ) input++;
-	return input;
+	while (true)
+	{
+		char c = *input;
+
+		switch (c)
+		{
+			case '\n':
+			case '\r':
+			case '\t':
+			case  ' ':
+			case '\f':
+			case '\v':
+			{
+				input++;
+				break;
+			}
+
+			// comment
+			case ';':
+			{
+				while (*input && *input != '\n') input++;
+				break;
+			}
+
+			default:
+			{
+				return input;
+			}
+		}
+	}
 }
 
 template <bool force_uppercase>

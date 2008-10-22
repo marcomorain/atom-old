@@ -9,7 +9,9 @@ Cell* function_cdr				( Runtime& runtime, Cell* params );
 // ceiling
 // char=
 Cell* function_cons				( Runtime& runtime, Cell* params );
-// defmacro
+Cell* function_eval				( Runtime& runtime, Cell* params );
+Cell* function_defmacro			( Runtime& runtime, Cell* params );
+Cell* function_defun			( Runtime& runtime, Cell* params );
 // documentation
 Cell* function_eq				( Runtime& runtime, Cell* params );
 Cell* function_error			( Runtime& runtime, Cell* params );

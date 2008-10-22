@@ -42,21 +42,6 @@ Atom = ( {Atom Char} | '\'{Printable} )+
 */
 
 
-class Output
-{
-	public:
-	virtual void print ( const char* str) = 0;
-	virtual ~Output ( void ){};
-};
-
-class StandardOutput : public Output
-{
-	virtual void print ( const char* str )
-	{
-		printf(str);
-	}
-};
-
 class Runtime : public NoCopy
 {
 //  private: // members
@@ -69,25 +54,29 @@ public:
 		COMMA_CHARACTER		= ','
 	};
 
-	// There is only ever one copy of a string.
-	Map<hash, String> m_strings;
-
-	Output* m_output;
-
-	hash m_quote_hash;
-	hash m_backquote_hash;
-	hash m_comma_hash;
-
-	void set_output ( Output* output );
-
-	const char* name ( Cell* ident ) const;
-
-private:
-
 	enum
 	{
 		HASH_SEED = 5381
 	};
+
+
+	typedef struct
+	{
+		Cell*		cell;
+		const char* input;
+
+	} State;
+
+	typedef struct  
+	{
+		Cell* params;
+		Cell* body;
+
+	} Macro;
+
+	typedef Cell* (*Function)(Runtime&, Cell*);
+
+private:
 
 	static char uppercase ( char c )
 	{
@@ -120,34 +109,24 @@ private:
 	template <bool force_uppercase>
 	hash hash_character_string ( const char* start, const char* end );
 
+	const char* name ( Cell* ident ) const;
+
 public:
-
-	typedef enum
-	{
-		FORCE_UPPERCASE,
-		USE_EXACT_STRING
-
-	} case_policy;
-
 	
 	hash hash_string ( const char* start, const char* end )
 	{
 		return hash_character_string<false>(start, end);
 	}
 
+	hash hash_ident  ( const char* start )
+	{
+		return hash_ident(start, start + strlen(start));
+	}
+
 	hash hash_ident  ( const char* start, const char* end )
 	{
 		return hash_character_string<true>(start, end);
 	}
-
-
-	Cell* m_T;
-	
-	typedef Cell* (*Function)(Runtime&, Cell*);
-
-	Map<hash, Function> m_builtins;
-	Map<hash, Cell*>	m_symbols;
-	Map<hash, Cell*>	m_functions;
 
 	Cell* call_function (Cell* function, Cell* params ); 
 
@@ -165,26 +144,16 @@ public:
 	Runtime ( void );
 	~Runtime ( void );
 
-	Cell* evaluate ( Cell* cell );
-
-	Cell* funcall ( Cell* func, Cell* params );
-
+	Cell* evaluate	( Cell* cell );
+	Cell* funcall	( Cell* func, Cell* params );
 	Cell* replace_commas ( Cell* expression );
 
-	void to_string ( Array<char>& output, Cell* cell );
-	void to_string_recursive ( Array<char>& output, Cell* cell, bool head_of_list);
+	void def_macro ( hash h, Cell* params, Cell* body );
+
+	void output ( Cell* cell ) const;
+	void output_recursive ( Cell* cell, bool head_of_list) const;
 
 	bool parse_and_evaluate ( const char* input );
-
-	public: // Parser Functions
-
-
-	typedef struct
-	{
-		Cell*		cell;
-		const char* input;
-
-	} State;
 
 	State accept_atom			( const char* input );
 	State accept_ident			( const char* input );
@@ -194,6 +163,26 @@ public:
 	State accept_series			( const char* input );
 	State accept_s_expression	( const char* input );
 	State accept_dot			( const char* input );	
+
+	public:
+
+	Cell* m_T;
+
+	Map<hash, Function> m_builtins;
+	Map<hash, Cell*>	m_symbols;
+	Map<hash, Cell*>	m_functions;
+	Map<hash, Macro>	m_macros;
+
+	// There is only ever one copy of a string.
+	Map<hash, String> m_strings;
+
+	hash m_quote_hash;
+	hash m_backquote_hash;
+	hash m_comma_hash;
+	hash m_lambda_hash;
+
+	FILE* m_output;
+
 };
 
 inline bool valid ( const Runtime::State& state )
