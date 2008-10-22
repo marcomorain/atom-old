@@ -16,6 +16,7 @@ Cell* function_apply		( Runtime& runtime, Cell* params )
 
 Cell* function_quote ( Runtime& runtime, Cell* params )
 {
+	jassert(params);
 	return car(params);
 }
 
@@ -36,23 +37,51 @@ Cell* function_cons	( Runtime& runtime, Cell* params )
 	return cons;
 }
 
+Cell* function_defmacro			( Runtime& runtime, Cell* params )
+{
+	jassert(0);
+	return null;
+}
+
+Cell* function_eval				( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* expression = runtime.evaluate( car(params) );
+	return runtime.evaluate(expression);
+}
+
+Cell* function_defun			( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* name = car(params);
+	Cell* args = car(cdr(params));
+	Cell* body = cdr(cdr(params));
+
+	jassert(name->is_a(Cell::IDENT));
+
+	Cell* expression = new Cell(Cell::LIST);
+
+	car(expression) = new Cell(Cell::IDENT, runtime.m_lambda_hash);
+	car(expression)->set_atom_name("LAMDBA");
+
+	cdr(expression) = new Cell(Cell::LIST);
+	car(cdr(expression)) = args;
+	cdr(cdr(expression)) = body;
+
+	runtime.m_functions[name->m_union.u_ident.m_name] = expression;
+
+	return expression;
+}
+
 Cell* function_length		( Runtime& runtime, Cell* params )
 {
 	jassert(params);
-	Cell* list = runtime.evaluate(params);
+	jassert(car(params));
+	Cell* list = runtime.evaluate(car(params));
 	jassert(list);
 	jassert(list->is_a(Cell::LIST));
-
-	int length = 0;
-
-	while (list)
-	{
-		length++;
-		list=cdr(list);
-	}
-
 	Cell* result = new Cell(Cell::NUMBER);
-	result->number() = length;
+	result->number() = length(list);
 	return result;
 }
 

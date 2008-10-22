@@ -158,6 +158,22 @@ inline Cell*& cdr ( Cell* cell )
 	return cell->cdr();
 }
 
+/// Returns the length of the given list
+inline int length ( const Cell* list )
+{
+	jassert(list->is_a(Cell::LIST));
+
+	int result = 0;
+
+	while (list)
+	{
+		result++;
+		list = cdr(list);
+	}
+
+	return result;
+}
+
 inline bool nil ( Cell* cell )
 {
 	if (!cell) return true;
