@@ -38,6 +38,7 @@ Runtime::Runtime ( void )
 	register_function(">",			function_greater_than);
 	register_function("<",			function_less_than);
 	register_function("QUOTE",		function_quote);
+	register_function("PROGN",		function_progn);
 	register_function("LENGTH",		function_length);
 	register_function("BLOCK",		function_block);
 	register_function("RETURN-FROM",function_return_from);
@@ -91,7 +92,47 @@ Cell* Runtime::replace_commas ( Cell* expression )
 
 Cell* Runtime::funcall ( Cell* func, Cell* params )
 {
-	return null;
+	jassert(params);
+	jassert(car(params));
+
+	Cell* lambda = car(func);
+	jassert(lambda->name() == m_lambda_hash);
+
+	Cell* arg_list = car(cdr(func));
+
+	Cell* body =  cdr(cdr(func));
+
+	//todo: cache this somewhere
+	const int num_args = length(arg_list);
+
+	jassert( num_args == length(params));
+
+	Array<Cell*> old_values;
+
+	// todo: push args
+	for (	Cell* arg = arg_list, *param = params;
+			arg;
+			arg = cdr(arg), param = cdr(param))
+	{
+		jassert(param);
+		const hash name = car(arg)->name();
+		old_values.push_back( m_symbols[name] );
+		m_symbols[ name ] = evaluate( car(param) );
+	}
+
+	Cell* result = function_progn( *this, body );
+
+	// todo: pop args
+	int from_end = 1;
+	for (Cell* arg = arg_list; arg; arg = cdr(arg))
+	{
+		const hash name = car(arg)->name();
+		old_values.push_back( m_symbols[name] );
+		m_symbols[ name ] = old_values[old_values.size() - from_end];
+		old_values[old_values.size() - from_end] = null;
+		from_end++;
+	}
+	return result;
 }
 
 
@@ -128,7 +169,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 const char* Runtime::name ( Cell* cell ) const
 {
 	jassert(cell->is_a(Cell::IDENT));
-	return m_strings.get( cell->m_union.u_ident.m_name ).c_str();
+	return m_strings.get( cell->name() ).c_str();
 }
 
 void Runtime::register_function ( const char* name, Runtime::Function func )
@@ -226,7 +267,7 @@ Cell* Runtime::evaluate( Cell* cell )
 
 		if (name->is_a(Cell::IDENT))
 		{
-			if (name->m_union.u_ident.m_name == m_lambda_hash)
+			if (name->name() == m_lambda_hash)
 			{
 				return cell;
 			}
@@ -238,7 +279,7 @@ Cell* Runtime::evaluate( Cell* cell )
 
 	if (cell->is_a(Cell::IDENT))
 	{
-		return cell->m_union.u_ident.m_value;
+		return m_symbols.get(cell->name());
 	}
 
 	if (cell->is_a(Cell::NUMBER) || cell->is_a(Cell::STRING))
