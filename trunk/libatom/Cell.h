@@ -15,20 +15,13 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	} Cons;
 
-	typedef struct  
-	{
-		Cell*	m_value;
-		hash	m_name;
-
-	} Ident;
-
 	typedef union
 	{
 		Cons	u_cons;
 		hash	u_string;
 		double	u_float;
 		Integer u_int;
-		Ident	u_ident;
+		hash	u_ident;
 	} CellUnion;
 
   public:
@@ -66,8 +59,7 @@ class Cell : public NoCopy, public Counted<Cell>
 				break;
 
 			case IDENT:
-				m_union.u_ident.m_name	= h;
-				m_union.u_ident.m_value = null;
+				m_union.u_ident = h;
 				break;
 			
 			default:
@@ -94,7 +86,7 @@ class Cell : public NoCopy, public Counted<Cell>
 	inline const hash& name ( void )
 	{
 		jassert(is_a(IDENT));
-		return m_union.u_ident.m_name;
+		return m_union.u_ident;
 	}
 
 	inline Integer& number ( void )

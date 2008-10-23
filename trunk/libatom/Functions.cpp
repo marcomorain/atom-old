@@ -68,7 +68,7 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 	car(cdr(expression)) = args;
 	cdr(cdr(expression)) = body;
 
-	runtime.m_functions[name->m_union.u_ident.m_name] = expression;
+	runtime.m_functions[name->name()] = expression;
 
 	return expression;
 }
@@ -153,19 +153,27 @@ Cell* function_setf ( Runtime& runtime, Cell* params )
 	jassert(symbol && symbol->is_a(Cell::IDENT));
 	jassert(cdr(params));
 	Cell* value = runtime.evaluate(car(cdr(params)));
-	symbol->m_union.u_ident.m_value = value;
+	runtime.m_symbols[symbol->name()] = value;
 	return value;
 }
 
 Cell* function_car	( Runtime& runtime, Cell* params )
 {
-	return car(params);
+	jassert(params);
+	jassert(car(params));
+	Cell* first = car(params);
+	Cell* result = runtime.evaluate( first );
+	jassert(result);
+	return car( result );
 }
 
 Cell* function_cdr	( Runtime& runtime, Cell* params )
 {
-	return cdr(params);
-}
+	jassert(params);
+	jassert(car(params));
+	Cell* first = car(params);
+
+	return cdr( runtime.evaluate( first ));}
 
 Cell* function_eq ( Runtime& runtime, Cell* params )
 {
@@ -195,7 +203,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 	
 	if (first->is_a(Cell::IDENT))
 	{
-		if ( first->m_union.u_ident.m_value == second->m_union.u_ident.m_value )
+		if ( first->name() == second->name())
 		{
 			return runtime.m_T;
 		}
@@ -236,6 +244,22 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 	{
 		return new Cell(Cell::LIST);
 	}
+}
+
+
+Cell* function_progn ( Runtime& runtime, Cell* params )
+{
+	Cell* result = null;
+
+	Cell* statement = params;
+
+	while ( statement )
+	{
+		result = runtime.evaluate( car(statement) );
+		statement = cdr(statement);
+	}
+
+	return result;
 }
 
 Cell* function_if ( Runtime& runtime, Cell* params )
