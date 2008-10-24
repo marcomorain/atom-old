@@ -9,12 +9,12 @@ using namespace std;
 const static Runtime::State no_match = {0,0};
 
 Runtime::Runtime ( void )
-{
-	m_quote_hash		= hash_ident("QUOTE");
-	m_backquote_hash	= hash_ident("BACKQUOTE");
-	m_comma_hash		= hash_ident("COMMA");
-	m_lambda_hash		= hash_ident("LAMBDA");
-	
+: m_hash_quote		(hash_ident("QUOTE"))
+, m_hash_backquote	(hash_ident("BACKQUOTE"))
+, m_hash_comma		(hash_ident("COMMA"))
+, m_hash_lambda		(hash_ident("LAMBDA"))
+, m_hash_nil		(hash_ident("NIL"))
+{	
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
@@ -65,12 +65,12 @@ Cell* Runtime::replace_commas ( Cell* expression )
 	
 	if ( first && first->is_a(Cell::IDENT))
 	{
-		if ( first->name() == m_comma_hash )
+		if ( first->name() == m_hash_comma )
 		{
 			Cell* rest = car(cdr(expression));
 			return evaluate( replace_commas (rest) );
 		}
-		else if (first->name() == m_backquote_hash)
+		else if (first->name() == m_hash_backquote)
 		{
 			Cell* rest = car(cdr(expression));
 			return replace_commas(rest);
@@ -96,7 +96,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	jassert(car(params));
 
 	Cell* lambda = car(func);
-	jassert(lambda->name() == m_lambda_hash);
+	jassert(lambda->name() == m_hash_lambda);
 
 	Cell* arg_list = car(cdr(func));
 
@@ -117,7 +117,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 		jassert(param);
 		const hash name = car(arg)->name();
 		old_values.push_back( m_symbols[name] );
-		m_symbols[ name ] = evaluate( car(param) );
+		m_symbols[ name ] = evaluate(car(param));
 	}
 
 	Cell* result = function_progn( *this, body );
@@ -127,9 +127,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	for (Cell* arg = arg_list; arg; arg = cdr(arg))
 	{
 		const hash name = car(arg)->name();
-		old_values.push_back( m_symbols[name] );
 		m_symbols[ name ] = old_values[old_values.size() - from_end];
-		old_values[old_values.size() - from_end] = null;
 		from_end++;
 	}
 	return result;
@@ -267,7 +265,7 @@ Cell* Runtime::evaluate( Cell* cell )
 
 		if (name->is_a(Cell::IDENT))
 		{
-			if (name->name() == m_lambda_hash)
+			if (name->name() == m_hash_lambda)
 			{
 				return cell;
 			}
@@ -321,26 +319,31 @@ Cell* Runtime::read_atom ( const char* start, const char* end )
 {
 	Integer val;
 
+	Cell* atom;
+
 	if (read_integer(start, end, val))
 	{
 		// cell
-		Cell* atom_cell = new Cell(Cell::NUMBER);
-		atom_cell->number() = val;
-		return atom_cell;
+		atom = new Cell(Cell::NUMBER);
+		atom->number() = val;
 	}
 	else
 	{
 		const hash h = hash_ident(start, end);
-		Cell* atom_cell = m_symbols.get(h, null);
-		if (!atom_cell)
+
+		if (h == m_hash_nil)
 		{
-			// cell
-			atom_cell = new Cell(Cell::IDENT, h);
-			atom_cell->set_atom_name(start, end);
-			m_symbols[h] = atom_cell;
+			atom = new Cell(Cell::LIST);
+			atom->set_atom_name("NIL");
 		}
-		return atom_cell;
+		else
+		{
+			atom =  new Cell(Cell::IDENT, h);
+			atom->set_atom_name( get_string(h) );
+		}
 	}
+
+	return atom;
 }
 
 bool read_integer (const char* start, const char* end, Integer& value)
@@ -391,6 +394,7 @@ bool atom_char ( const char c )
 	if (c == '?') return true;
 	if (c == '>') return true;
 	if (c == '<') return true;
+	if (c == '_') return true;
 	return false;
 }
 
@@ -494,9 +498,9 @@ Runtime::State Runtime::accept_quoted_s_exp ( const char* input )
 			jassert(valid(state));
 
 			hash h;
-			if		(c == QUOTE_CHARACTER)		h = m_quote_hash;
-			else if (c == BACKQUOTE_CHARACTER)	h = m_backquote_hash;
-			else if (c == COMMA_CHARACTER)		h = m_comma_hash;
+			if		(c == QUOTE_CHARACTER)		h = m_hash_quote;
+			else if (c == BACKQUOTE_CHARACTER)	h = m_hash_backquote;
+			else if (c == COMMA_CHARACTER)		h = m_hash_comma;
 			else
 			{
 				jassert(0);
