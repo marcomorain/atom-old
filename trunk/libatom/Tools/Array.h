@@ -292,7 +292,6 @@ public:
 		m_size--;
 	}
 
-
 	// Swaps the contents of two vectors.
 	// Runs in O(1) time
 	void swap(Array& other)

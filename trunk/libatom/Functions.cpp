@@ -61,7 +61,7 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 
 	Cell* expression = new Cell(Cell::LIST);
 
-	car(expression) = new Cell(Cell::IDENT, runtime.m_lambda_hash);
+	car(expression) = new Cell(Cell::IDENT, runtime.m_hash_lambda);
 	car(expression)->set_atom_name("LAMDBA");
 
 	cdr(expression) = new Cell(Cell::LIST);
@@ -374,11 +374,13 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 	Cell* filename = car(params);
 	jassert(filename);
 
-	FILE* file = fopen( runtime.get_string(filename->m_union.u_string), "r");
+	const char* filename_string = runtime.get_string(filename->m_union.u_string);
+
+	FILE* file = fopen( filename_string, "r");
 
 	if (!file)
 	{
-		cerr << "Error opening file \"" << filename->m_union.u_string << "\"" << endl;
+		cerr << "Error opening file \"" << filename_string << "\"" << endl;
 		return null;
 	}
 
@@ -387,11 +389,11 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 	rewind(file);
 
 	char* buffer = new char [size];
-	size_t read_error = fread(buffer, size, 1, file);
+	size_t count = fread(buffer, size, 1, file);
 
 	bool result = false;
 
-	if (!read_error)
+	if (count > 0)
 	{
 		result = runtime.parse_and_evaluate(buffer);
 	}

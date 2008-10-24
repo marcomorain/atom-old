@@ -176,10 +176,11 @@ public:
 	// There is only ever one copy of a string.
 	Map<hash, String> m_strings;
 
-	hash m_quote_hash;
-	hash m_backquote_hash;
-	hash m_comma_hash;
-	hash m_lambda_hash;
+	const hash m_hash_quote;
+	const hash m_hash_backquote;
+	const hash m_hash_comma;
+	const hash m_hash_lambda;
+	const hash m_hash_nil;
 
 	FILE* m_output;
 
