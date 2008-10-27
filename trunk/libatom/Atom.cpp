@@ -19,9 +19,13 @@ Runtime::Runtime ( void )
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
+	m_nil = new Cell(Cell::LIST);
+	m_nil->set_atom_name("NIL");
+
 	m_output = stdout;
 
 	register_function("AND",		function_and);
+	register_function("ATOM",		function_atom);
 	register_function("APPLY",		function_apply);
 	register_function("SETF",		function_setf);
 	register_function("CAR",		function_car);
@@ -39,6 +43,7 @@ Runtime::Runtime ( void )
 	register_function("OR",			function_or);
 	register_function("+",			function_plus);
 	register_function("-",			function_minus);
+	register_function("LIST",		function_list);
 	register_function("LOAD",		function_load);
 	register_function(">",			function_greater_than);
 	register_function("<",			function_less_than);
@@ -98,7 +103,6 @@ Cell* Runtime::replace_commas ( Cell* expression )
 Cell* Runtime::funcall ( Cell* func, Cell* params )
 {
 	jassert(params);
-	jassert(car(params));
 
 	Cell* lambda = car(func);
 	jassert(lambda->name() == m_hash_lambda);
@@ -166,7 +170,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 	}
 
 	cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
-	return null;
+	return m_nil;
 }
 
 const char* Runtime::name ( Cell* cell ) const
@@ -194,11 +198,7 @@ void Runtime::output( Cell* cell ) const
 
 void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 {
-	if (!cell)
-	{
-		fprintf(m_output, "NIL");
-		return;
-	}
+	jassert(cell);
 
 	switch (cell->m_type)
 	{
@@ -260,7 +260,7 @@ Cell* Runtime::evaluate( Cell* cell )
 {
 	if (nil(cell))
 	{
-		return null;
+		return m_nil;
 	}
 
 	if (cell->is_a(Cell::LIST))
@@ -316,7 +316,7 @@ bool Runtime::parse_and_evaluate ( const char* input )
 		else
 		{
 			success = true;
-			output(state.cell);
+			//output(state.cell);
 			Cell* result = evaluate(state.cell);
 			output(result);
 		}
@@ -343,13 +343,11 @@ Cell* Runtime::read_atom ( const char* start, const char* end )
 
 		if (h == m_hash_nil)
 		{
-			atom = new Cell(Cell::LIST);
-			atom->set_atom_name("NIL");
+			atom = m_nil;
 		}
 		else if (h == m_hash_t)
 		{
-			atom = new Cell(Cell::TRUE);
-			atom->set_atom_name("T");
+			atom = m_T;
 		}
 		else
 		{
