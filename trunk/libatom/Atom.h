@@ -181,6 +181,7 @@ public:
 	const hash m_hash_comma;
 	const hash m_hash_lambda;
 	const hash m_hash_nil;
+	const hash m_hash_t;
 
 	FILE* m_output;
 

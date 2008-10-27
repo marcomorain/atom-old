@@ -14,24 +14,29 @@ Runtime::Runtime ( void )
 , m_hash_comma		(hash_ident("COMMA"))
 , m_hash_lambda		(hash_ident("LAMBDA"))
 , m_hash_nil		(hash_ident("NIL"))
+, m_hash_t			(hash_ident("T"))
 {	
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
 
 	m_output = stdout;
 
+	register_function("AND",		function_and);
 	register_function("APPLY",		function_apply);
 	register_function("SETF",		function_setf);
 	register_function("CAR",		function_car);
 	register_function("CDR",		function_cdr);
 	register_function("CONS",		function_cons);
+	register_function("COND",		function_cond);
 	register_function("DEFUN",		function_defun);
 	register_function("EVAL",		function_eval);
 	register_function("EQ",			function_eq);
 	register_function("ERROR",		function_error);
 	register_function("STRINGP",	function_stringp);
 	register_function("IF",			function_if);
+	register_function("NULL",		function_null);
 	register_function("NTH-VALUE",	function_nth_value);
+	register_function("OR",			function_or);
 	register_function("+",			function_plus);
 	register_function("-",			function_minus);
 	register_function("LOAD",		function_load);
@@ -285,6 +290,11 @@ Cell* Runtime::evaluate( Cell* cell )
 		return cell;
 	}
 
+	if (cell->is_a(Cell::TRUE))
+	{
+		return cell;
+	}
+
 	jassert(0);
 	return null;
 }
@@ -335,6 +345,11 @@ Cell* Runtime::read_atom ( const char* start, const char* end )
 		{
 			atom = new Cell(Cell::LIST);
 			atom->set_atom_name("NIL");
+		}
+		else if (h == m_hash_t)
+		{
+			atom = new Cell(Cell::TRUE);
+			atom->set_atom_name("T");
 		}
 		else
 		{
