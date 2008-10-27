@@ -73,13 +73,13 @@
 
 ;; `and', `or', `not' test
 (assert '(and t))
-(assertn '(and n))
+(assertn '(and nil))
 (assert '(and t t))
 (assertn '(and nil nil))
 (assertn '(and t nil))
 (assertn '(and nil t))
 (assert '(or t))
-(assertn '(or n))
+(assertn '(or nil))
 (assert '(or t t))
 (assertn '(or nil nil))
 (assert '(or t nil))

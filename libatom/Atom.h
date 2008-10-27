@@ -167,6 +167,7 @@ public:
 	public:
 
 	Cell* m_T;
+	Cell* m_nil;
 
 	Map<hash, Function> m_builtins;
 	Map<hash, Cell*>	m_symbols;

@@ -14,6 +14,15 @@ Cell* function_apply		( Runtime& runtime, Cell* params )
 	return runtime.call_function(function, rest);
 }
 
+Cell* function_atom	( Runtime& runtime, Cell* params )
+{
+	jassert(params && car(params));
+
+	Cell* var = runtime.evaluate(car(params));
+
+	return var->is_a(Cell::LIST) ? runtime.m_nil : runtime.m_T;
+}
+
 Cell* function_quote ( Runtime& runtime, Cell* params )
 {
 	jassert(params);
@@ -24,24 +33,22 @@ Cell* function_cond	( Runtime& runtime, Cell* params )
 {
 	jassert(params);
 
-	Cell* current	= car(params);
-	Cell* rest		= cdr(params);
+	Cell* current	= params;
 
 	while (current)
 	{
-		Cell* test = car(current);
+		Cell* test = car(car(current));
 
 		if ( ! nil(test) )
 		{
-			Cell* body = cdr(current);
+			Cell* body = cdr(car(current));
 			return function_progn(runtime, body);
 		}
 
-		current = car(rest);
-		rest	= cdr(rest); 
+		current = cdr(current);
 	}
 
-	return new Cell(Cell::LIST); // return nil;
+	return runtime.m_nil; // return nil;
 }
 
 Cell* function_cons	( Runtime& runtime, Cell* params )
@@ -97,6 +104,29 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 	return expression;
 }
 
+Cell* function_list ( Runtime& runtime, Cell* params )
+{
+	Cell* current	= params;
+	Cell* head		= new Cell(Cell::LIST);
+	Cell* last		= head;
+
+	while(current)
+	{
+		car(last) = runtime.evaluate(car(current));
+
+		current = cdr(current);
+
+		if (current)
+		{
+			Cell* next = new Cell(Cell::LIST);
+			cdr(last) = next;
+			last = next;
+		}
+	}
+
+	return head;
+}
+
 Cell* function_and ( Runtime& runtime, Cell* params )
 {
 	if (!params)
@@ -112,7 +142,7 @@ Cell* function_and ( Runtime& runtime, Cell* params )
 		result = runtime.evaluate(car(current));
 
 		// return nil;
-		if (nil(result)) return new Cell(Cell::LIST);
+		if (nil(result)) return runtime.m_nil;
 
 		current = cdr(current);
 	}
@@ -135,7 +165,7 @@ Cell* function_or ( Runtime& runtime, Cell* params )
 		current = cdr(current);
 	}
 
-	return new Cell(Cell::LIST);
+	return runtime.m_nil;
 }
 
 Cell* function_length		( Runtime& runtime, Cell* params )
@@ -178,7 +208,7 @@ Cell* function_null	( Runtime& runtime, Cell* params )
 	}
 	
 	// return nil
-	return new Cell(Cell::LIST);
+	return runtime.m_nil;
 }
 
 Cell* function_nth_value	( Runtime& runtime, Cell* params )
@@ -269,7 +299,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 
 	if ( first->m_type != second->m_type )
 	{
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 
 	if (first->is_a(Cell::LIST))
@@ -279,7 +309,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 			return runtime.m_T;
 		}
 
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 	
 	if (first->is_a(Cell::IDENT))
@@ -288,7 +318,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 		{
 			return runtime.m_T;
 		}
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 
 	if (first->is_a(Cell::NUMBER))
@@ -297,7 +327,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 		{
 			return runtime.m_T;
 		}
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 
 	const bool second_number = second->is_a(Cell::NUMBER);
@@ -308,11 +338,11 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 		{
 			return runtime.m_T;
 		}
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 
 	jassert(0);
-	return new Cell(Cell::LIST);
+	return runtime.m_nil;
 }
 
 Cell* function_stringp	( Runtime& runtime, Cell* params )
@@ -323,7 +353,7 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 	}
 	else
 	{
-		return new Cell(Cell::LIST);
+		return runtime.m_nil;
 	}
 }
 
@@ -479,6 +509,6 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 		result = runtime.parse_and_evaluate(buffer);
 	}
 	delete [] buffer;
-	return result ? runtime.m_T : new Cell(Cell::LIST);
+	return result ? runtime.m_T : runtime.m_nil;
 }
 
