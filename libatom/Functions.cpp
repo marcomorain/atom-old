@@ -20,6 +20,30 @@ Cell* function_quote ( Runtime& runtime, Cell* params )
 	return car(params);
 }
 
+Cell* function_cond	( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* current	= car(params);
+	Cell* rest		= cdr(params);
+
+	while (current)
+	{
+		Cell* test = car(current);
+
+		if ( ! nil(test) )
+		{
+			Cell* body = cdr(current);
+			return function_progn(runtime, body);
+		}
+
+		current = car(rest);
+		rest	= cdr(rest); 
+	}
+
+	return new Cell(Cell::LIST); // return nil;
+}
+
 Cell* function_cons	( Runtime& runtime, Cell* params )
 {
 	Cell* cons = new Cell(Cell::LIST);
@@ -73,6 +97,47 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 	return expression;
 }
 
+Cell* function_and ( Runtime& runtime, Cell* params )
+{
+	if (!params)
+	{
+		return runtime.m_T;
+	}
+
+	Cell* current	= params;
+	Cell* result	= 0;
+
+	while(current)
+	{
+		result = runtime.evaluate(car(current));
+
+		// return nil;
+		if (nil(result)) return new Cell(Cell::LIST);
+
+		current = cdr(current);
+	}
+
+	return result;
+}
+
+Cell* function_or ( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* current	= params;
+	
+	while (current)
+	{
+		Cell* result = runtime.evaluate( car(current) );
+
+		if (result) return result;
+
+		current = cdr(current);
+	}
+
+	return new Cell(Cell::LIST);
+}
+
 Cell* function_length		( Runtime& runtime, Cell* params )
 {
 	jassert(params);
@@ -98,6 +163,22 @@ Cell* function_realpart		( Runtime& runtime, Cell* params )
 Cell* function_error ( Runtime& runtime, Cell* params )
 {
 	BREAKPOINT();
+}
+
+Cell* function_null	( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* param = car(params);
+	Cell* value = runtime.evaluate(param);
+
+	if (nil(value))
+	{
+		return runtime.m_T;
+	}
+	
+	// return nil
+	return new Cell(Cell::LIST);
 }
 
 Cell* function_nth_value	( Runtime& runtime, Cell* params )
