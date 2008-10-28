@@ -76,12 +76,12 @@ Cell* Runtime::replace_commas ( Cell* expression )
 	
 	if ( first && first->is_a(Cell::IDENT))
 	{
-		if ( first->name() == m_hash_comma )
+		if ( first->ident() == m_hash_comma )
 		{
 			Cell* rest = car(cdr(expression));
 			return evaluate( replace_commas (rest) );
 		}
-		else if (first->name() == m_hash_backquote)
+		else if (first->ident() == m_hash_backquote)
 		{
 			Cell* rest = car(cdr(expression));
 			return replace_commas(rest);
@@ -106,7 +106,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	jassert(params);
 
 	Cell* lambda = car(func);
-	jassert(lambda->name() == m_hash_lambda);
+	jassert(lambda->ident() == m_hash_lambda);
 
 	Cell* arg_list = car(cdr(func));
 
@@ -125,7 +125,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 			arg = cdr(arg), param = cdr(param))
 	{
 		jassert(param);
-		const hash name = car(arg)->name();
+		const hash name = car(arg)->ident();
 		old_values.push_back( m_symbols[name] );
 		m_symbols[ name ] = evaluate(car(param));
 	}
@@ -136,7 +136,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	int from_end = 1;
 	for (Cell* arg = arg_list; arg; arg = cdr(arg))
 	{
-		const hash name = car(arg)->name();
+		const hash name = car(arg)->ident();
 		m_symbols[ name ] = old_values[old_values.size() - from_end];
 		from_end++;
 	}
@@ -151,10 +151,10 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 	if (!function->is_a(Cell::IDENT))
 	{
 		cerr << "Error: " << function << " is not a function." << endl;
-		return null;
+		return m_nil;
 	}
 
-	const hash h = function->name();
+	const hash h = function->ident();
 
 	Function built_in = m_builtins.get(h, null);
 
@@ -177,7 +177,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 const char* Runtime::name ( Cell* cell ) const
 {
 	jassert(cell->is_a(Cell::IDENT));
-	return m_strings.get( cell->name() ).c_str();
+	return m_strings.get( cell->ident() ).c_str();
 }
 
 void Runtime::register_function ( const char* name, Runtime::Function func )
@@ -271,19 +271,19 @@ Cell* Runtime::evaluate( Cell* cell )
 
 		if (name->is_a(Cell::IDENT))
 		{
-			if (name->name() == m_hash_lambda)
+			if (name->ident() == m_hash_lambda)
 			{
 				return cell;
 			}
 			return call_function( name, params);
 		}
 
-		return null;
+		return m_nil;
 	}
 
 	if (cell->is_a(Cell::IDENT))
 	{
-		return m_symbols.get(cell->name());
+		return m_symbols.get(cell->ident());
 	}
 
 	if (cell->is_a(Cell::NUMBER) || cell->is_a(Cell::STRING))
@@ -297,7 +297,7 @@ Cell* Runtime::evaluate( Cell* cell )
 	}
 
 	jassert(0);
-	return null;
+	return m_nil;
 }
 
 bool Runtime::parse_and_evaluate ( const char* input )

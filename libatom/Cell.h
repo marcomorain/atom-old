@@ -83,7 +83,7 @@ class Cell : public NoCopy, public Counted<Cell>
 	{
 	}
 
-	inline const hash& name ( void )
+	inline const hash& ident ( void )
 	{
 		jassert(is_a(IDENT));
 		return m_union.u_ident;
