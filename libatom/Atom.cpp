@@ -48,6 +48,7 @@ Runtime::Runtime ( void )
 	register_function(">",			function_greater_than);
 	register_function("<",			function_less_than);
 	register_function("QUOTE",		function_quote);
+	register_function("PROG1",		function_prog1);
 	register_function("PROGN",		function_progn);
 	register_function("LENGTH",		function_length);
 	register_function("BLOCK",		function_block);
