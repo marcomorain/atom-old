@@ -99,7 +99,7 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 	car(cdr(expression)) = args;
 	cdr(cdr(expression)) = body;
 
-	runtime.m_functions[name->name()] = expression;
+	runtime.m_functions[name->ident()] = expression;
 
 	return expression;
 }
@@ -264,7 +264,7 @@ Cell* function_setf ( Runtime& runtime, Cell* params )
 	jassert(symbol && symbol->is_a(Cell::IDENT));
 	jassert(cdr(params));
 	Cell* value = runtime.evaluate(car(cdr(params)));
-	runtime.m_symbols[symbol->name()] = value;
+	runtime.m_symbols[symbol->ident()] = value;
 	return value;
 }
 
@@ -315,7 +315,7 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 	
 	if (first->is_a(Cell::IDENT))
 	{
-		if ( first->name() == second->name())
+		if ( first->ident() == second->ident())
 		{
 			return runtime.m_T;
 		}
@@ -330,8 +330,6 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 		}
 		return runtime.m_nil;
 	}
-
-	const bool second_number = second->is_a(Cell::NUMBER);
 
 	if ( second->is_a(Cell::STRING) )
 	{
