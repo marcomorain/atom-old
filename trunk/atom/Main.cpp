@@ -10,11 +10,9 @@ int main (int argc, char** argv)
 {
 	clog << "Size Of Cell " << sizeof(Cell) << " bytes." << endl;
 	Runtime runtime;
-	/*
-	runtime.parse_and_evaluate(	"(setf y '(1 2 3))\n"
-								"(defun mycar (x) ( car x ) )\n"
-								"(mycar y)");
-	*/
+	
+	runtime.parse_and_evaluate("(load \"atom.lsp\")");
+	runtime.parse_and_evaluate("(load \"lisp.lsp\")");
 
 	while(true)
 	{

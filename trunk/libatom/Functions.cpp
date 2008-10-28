@@ -284,7 +284,8 @@ Cell* function_cdr	( Runtime& runtime, Cell* params )
 	jassert(car(params));
 	Cell* first = car(params);
 
-	return cdr( runtime.evaluate( first ));}
+	return cdr( runtime.evaluate( first ));
+}
 
 Cell* function_eq ( Runtime& runtime, Cell* params )
 {
@@ -357,6 +358,22 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 	}
 }
 
+Cell* function_prog1 ( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* first = car(params);
+	Cell* result = runtime.evaluate(first);
+	Cell* current = cdr(params);
+
+	while (current)
+	{
+		runtime.evaluate(car(current));
+		current = cdr(current);
+	}
+
+	return result;
+}
 
 Cell* function_progn ( Runtime& runtime, Cell* params )
 {

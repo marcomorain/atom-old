@@ -43,6 +43,7 @@ Cell* function_return_from		( Runtime& runtime, Cell* params );
 // typep
 // =
 Cell* function_progn			( Runtime& runtime, Cell* params );
+Cell* function_prog1			( Runtime& runtime, Cell* params );
 Cell* function_plus				( Runtime& runtime, Cell* params );
 Cell* function_minus			( Runtime& runtime, Cell* params );
 Cell* function_greater_than		( Runtime& runtime,	Cell* params );
