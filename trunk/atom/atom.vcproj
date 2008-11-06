@@ -225,6 +225,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="0"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				GenerateMapFile="true"
 				MapFileName="$(TargetDir)$(TargetName).map"

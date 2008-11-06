@@ -42,6 +42,7 @@ Cell* function_return_from		( Runtime& runtime, Cell* params );
 // type-of
 // typep
 // =
+Cell* function_princ			( Runtime& runtime, Cell* params );
 Cell* function_progn			( Runtime& runtime, Cell* params );
 Cell* function_prog1			( Runtime& runtime, Cell* params );
 Cell* function_plus				( Runtime& runtime, Cell* params );
