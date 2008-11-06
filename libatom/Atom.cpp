@@ -48,6 +48,7 @@ Runtime::Runtime ( void )
 	register_function(">",			function_greater_than);
 	register_function("<",			function_less_than);
 	register_function("QUOTE",		function_quote);
+	register_function("PRINC",		function_princ);
 	register_function("PROG1",		function_prog1);
 	register_function("PROGN",		function_progn);
 	register_function("LENGTH",		function_length);
@@ -59,6 +60,12 @@ Runtime::Runtime ( void )
 Runtime::~Runtime ( void )
 {
 }
+
+const char* Runtime::get_string ( const hash h ) const
+{
+	return m_strings.get(h).c_str();
+}
+
 
 Cell* Runtime::replace_commas ( Cell* expression )
 {
@@ -150,7 +157,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 
 	if (!function->is_a(Cell::IDENT))
 	{
-		cerr << "Error: " << function << " is not a function." << endl;
+		//cerr << "Error: " << function << " is not a function." << endl;
 		return m_nil;
 	}
 
@@ -160,17 +167,23 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 
 	if (built_in)
 	{
-		return built_in(*this, params);
+		//clog << "Calling built-in \"" << name( function ) << "\"" << endl;
+		Cell* result = built_in(*this, params);
+		jassert(result);
+		return result;
 	}
 
 	Cell* func = m_functions.get(h, null);
 
 	if (func)
 	{
-		return funcall ( func, params );
+		//clog << "Calling user-defined function \"" << name( function ) << "\"" << endl;
+		Cell* result = funcall ( func, params );
+		jassert(result);
+		return result;
 	}
 
-	cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
+	//cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
 	return m_nil;
 }
 
@@ -191,15 +204,28 @@ void Runtime::def_macro ( hash h, Cell* params, Cell* body )
 	m.body   = body;
 }
 
-void Runtime::output( Cell* cell ) const
+void Runtime::output( Cell* cell, bool new_line ) const
 {
 	output_recursive(cell, true);
-	fprintf(m_output, "\n");
+
+	if (new_line)
+	{
+		fprintf(m_output, "\n");
+	}
+	else
+	{
+		fflush(m_output);
+	}
 }
 
 void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 {
 	jassert(cell);
+
+	if (nil(cell))
+	{
+		return;
+	}
 
 	switch (cell->m_type)
 	{
@@ -210,7 +236,7 @@ void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 				fprintf(m_output, "(");
 			}
 
-			if (car(cell))
+			if (!nil(car(cell)))
 			{
 				output_recursive(car(cell), car(cell)->is_a(Cell::LIST) );
 			}
@@ -219,10 +245,10 @@ void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 				fprintf(m_output, "NIL");
 			}
 
-			if (cdr(cell))
+			if (!nil(cdr(cell)))
 			{
 				fprintf(m_output, " ");
-				output_recursive(cdr(cell), car(cell)->is_a(Cell::LIST));
+				output_recursive(cdr(cell), false);
 			}
 
 			if (head_of_list)
@@ -275,7 +301,10 @@ Cell* Runtime::evaluate( Cell* cell )
 			{
 				return cell;
 			}
-			return call_function( name, params);
+
+			Cell* result = call_function( name, params);
+			jassert(result);
+			return result;
 		}
 
 		return m_nil;
@@ -283,15 +312,14 @@ Cell* Runtime::evaluate( Cell* cell )
 
 	if (cell->is_a(Cell::IDENT))
 	{
-		return m_symbols.get(cell->ident());
+		Cell* symbol = m_symbols.get(cell->ident());
+		jassert(symbol);
+		return symbol;
 	}
 
-	if (cell->is_a(Cell::NUMBER) || cell->is_a(Cell::STRING))
-	{
-		return cell;
-	}
-
-	if (cell->is_a(Cell::TRUE))
+	if (cell->is_a(Cell::NUMBER) ||
+		cell->is_a(Cell::STRING) ||
+		cell->is_a(Cell::TRUE))
 	{
 		return cell;
 	}
@@ -308,7 +336,8 @@ bool Runtime::parse_and_evaluate ( const char* input )
 
 	while (1)
 	{
-		state = accept_s_expression ( state.input );
+		const char* last_input = state.input;
+		state = accept_s_expression ( last_input );
 		
 		if (!state.cell)
 		{
@@ -319,7 +348,7 @@ bool Runtime::parse_and_evaluate ( const char* input )
 			success = true;
 			//output(state.cell);
 			Cell* result = evaluate(state.cell);
-			output(result);
+			output(result, true);
 		}
 	}
 
@@ -471,7 +500,7 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 			else
 			{
 				// collision, re-hash
-				cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
+				//cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
 				h = hash_string_internal<force_uppercase>(start, end, h);
 			}
 		}
@@ -652,7 +681,7 @@ Runtime::State Runtime::accept_list ( const char* input )
 
 	if (!valid(state))
 	{
-		cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error reading a list at " << input << endl;
+		//cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error reading a list at " << input << endl;
 		return no_match;
 	}
 
@@ -660,7 +689,7 @@ Runtime::State Runtime::accept_list ( const char* input )
 	
 	if (*input != ')')
 	{
-		cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error. Expecting \")\" at " << input << endl;
+		//cerr << __FILE__ << "(" << __LINE__ << ") " << "Parse error. Expecting \")\" at " << input << endl;
 		return no_match;
 	}
 

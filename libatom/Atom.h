@@ -50,8 +50,8 @@ public:
 	enum
 	{
 		QUOTE_CHARACTER		= '\'',
-		BACKQUOTE_CHARACTER = '`',
-		COMMA_CHARACTER		= ','
+		BACKQUOTE_CHARACTER =  '`',
+		COMMA_CHARACTER		=  ','
 	};
 
 	enum
@@ -134,12 +134,9 @@ public:
 
 	Cell* read_atom ( const char* start, const char* end );
 
-	const char* get_string ( const hash h ) const
-	{
-		return m_strings.get(h).c_str();
-	}
+	const char* get_string ( const hash h ) const;
 
-  public: // functions
+public: // functions
 
 	Runtime ( void );
 	~Runtime ( void );
@@ -150,7 +147,7 @@ public:
 
 	void def_macro ( hash h, Cell* params, Cell* body );
 
-	void output ( Cell* cell ) const;
+	void output ( Cell* cell, bool new_line ) const;
 	void output_recursive ( Cell* cell, bool head_of_list) const;
 
 	bool parse_and_evaluate ( const char* input );

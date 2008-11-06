@@ -10,8 +10,10 @@ Cell* function_apply		( Runtime& runtime, Cell* params )
 	jassert(params);
 	Cell* function = car(params);
 	Cell* rest = cdr(params);
+
+	Cell* f = runtime.evaluate(function);
 	rest = runtime.evaluate(rest);
-	return runtime.call_function(function, rest);
+	return runtime.call_function(f, rest);
 }
 
 Cell* function_atom	( Runtime& runtime, Cell* params )
@@ -20,7 +22,17 @@ Cell* function_atom	( Runtime& runtime, Cell* params )
 
 	Cell* var = runtime.evaluate(car(params));
 
-	return var->is_a(Cell::LIST) ? runtime.m_nil : runtime.m_T;
+	if (nil(var))
+	{
+		return runtime.m_T;
+	}
+
+	if (var->is_a(Cell::LIST))
+	{
+		return runtime.m_nil;
+	}
+
+	return runtime.m_T;
 }
 
 Cell* function_quote ( Runtime& runtime, Cell* params )
@@ -39,10 +51,19 @@ Cell* function_cond	( Runtime& runtime, Cell* params )
 	{
 		Cell* test = car(car(current));
 
-		if ( ! nil(test) )
+		Cell* result = runtime.evaluate(test);
+
+		if ( ! nil( result ) )
 		{
 			Cell* body = cdr(car(current));
-			return function_progn(runtime, body);
+
+			if (body)
+			{
+				result = function_progn(runtime, body);	
+			}
+
+			jassert(result);
+			return result;
 		}
 
 		current = cdr(current);
@@ -71,7 +92,7 @@ Cell* function_cons	( Runtime& runtime, Cell* params )
 Cell* function_defmacro			( Runtime& runtime, Cell* params )
 {
 	jassert(0);
-	return null;
+	return runtime.m_nil;
 }
 
 Cell* function_eval				( Runtime& runtime, Cell* params )
@@ -101,7 +122,7 @@ Cell* function_defun			( Runtime& runtime, Cell* params )
 
 	runtime.m_functions[name->ident()] = expression;
 
-	return expression;
+	return name;
 }
 
 Cell* function_list ( Runtime& runtime, Cell* params )
@@ -160,7 +181,7 @@ Cell* function_or ( Runtime& runtime, Cell* params )
 	{
 		Cell* result = runtime.evaluate( car(current) );
 
-		if (result) return result;
+		if (!nil(result)) return result;
 
 		current = cdr(current);
 	}
@@ -270,21 +291,22 @@ Cell* function_setf ( Runtime& runtime, Cell* params )
 
 Cell* function_car	( Runtime& runtime, Cell* params )
 {
-	jassert(params);
-	jassert(car(params));
+	jassert(params && car(params));
 	Cell* first = car(params);
-	Cell* result = runtime.evaluate( first );
-	jassert(result);
-	return car( result );
+	Cell* cell = runtime.evaluate( first );
+	jassert(cell);
+	Cell* the_car = car(cell);
+	return the_car ? the_car : runtime.m_nil;
 }
 
 Cell* function_cdr	( Runtime& runtime, Cell* params )
 {
-	jassert(params);
-	jassert(car(params));
+	jassert(params && car(params));
 	Cell* first = car(params);
-
-	return cdr( runtime.evaluate( first ));
+	Cell* cell = runtime.evaluate( first );
+	jassert(cell);
+	Cell* the_cdr = cdr(cell);
+	return the_cdr ? the_cdr : runtime.m_nil;
 }
 
 Cell* function_eq ( Runtime& runtime, Cell* params )
@@ -292,8 +314,11 @@ Cell* function_eq ( Runtime& runtime, Cell* params )
 	jassert(params);
 	jassert(cdr(params));
 
-	Cell* first		= car(params);
-	Cell* second	= car(cdr(params));
+	Cell* firstp	= car(params);
+	Cell* secondp	= car(cdr(params));
+
+	Cell* first		= runtime.evaluate(firstp);
+	Cell* second	= runtime.evaluate(secondp);
 
 	jassert(first);
 	jassert(second);
@@ -356,6 +381,20 @@ Cell* function_stringp	( Runtime& runtime, Cell* params )
 	}
 }
 
+Cell* function_princ			( Runtime& runtime, Cell* params )
+{
+	Cell* current = params;
+
+	while (current)
+	{
+		Cell* result = runtime.evaluate(car(current));
+		runtime.output( result, false );
+		current = cdr(current);
+	};
+
+	return runtime.m_T;
+}
+
 Cell* function_prog1 ( Runtime& runtime, Cell* params )
 {
 	jassert(params);
@@ -375,6 +414,8 @@ Cell* function_prog1 ( Runtime& runtime, Cell* params )
 
 Cell* function_progn ( Runtime& runtime, Cell* params )
 {
+	jassert(params);
+
 	Cell* result = null;
 
 	Cell* statement = params;
@@ -385,6 +426,7 @@ Cell* function_progn ( Runtime& runtime, Cell* params )
 		statement = cdr(statement);
 	}
 
+	jassert(result);
 	return result;
 }
 
@@ -506,8 +548,8 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 
 	if (!file)
 	{
-		cerr << "Error opening file \"" << filename_string << "\"" << endl;
-		return null;
+		//cerr << "Error opening file \"" << filename_string << "\"" << endl;
+		return runtime.m_nil;
 	}
 
 	fseek (file, 0, SEEK_END);
@@ -517,13 +559,19 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 	char* buffer = new char [size];
 	size_t count = fread(buffer, size, 1, file);
 
-	bool result = false;
+	bool success = false;
 
-	if (count > 0)
+	// todo: this needs to be checked for error correctly
+	if (count >= 0)
 	{
-		result = runtime.parse_and_evaluate(buffer);
+		success = runtime.parse_and_evaluate(buffer);
 	}
+	else
+	{
+		cerr << "No data read from \"" << filename_string << "\"" << endl;
+	}
+
 	delete [] buffer;
-	return result ? runtime.m_T : runtime.m_nil;
+	return success ? runtime.m_T : runtime.m_nil;
 }
 

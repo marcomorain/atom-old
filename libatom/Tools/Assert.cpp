@@ -6,8 +6,7 @@
 
 void Assert::Fail(const char* file, const unsigned line, const char* message)
 {
-	// todo cerr
-	std::cout << file << ":" << line << " Assertion failed: " << message << std::endl;
+	std::cerr << file << ":" << line << " Assertion failed: " << message << std::endl;
 }
 
 #endif //!NDEBUG
