@@ -157,7 +157,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 
 	if (!function->is_a(Cell::IDENT))
 	{
-		//cerr << "Error: " << function << " is not a function." << endl;
+		cerr << "Error: " << function << " is not a function." << endl;
 		return m_nil;
 	}
 
@@ -183,7 +183,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 		return result;
 	}
 
-	//cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
+	cerr << "Function \"" << name( function ) << "\" could not be found." << endl;
 	return m_nil;
 }
 
@@ -224,6 +224,7 @@ void Runtime::output_recursive ( Cell* cell, bool head_of_list) const
 
 	if (nil(cell))
 	{
+		fprintf(m_output, "NIL");
 		return;
 	}
 
@@ -500,7 +501,7 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 			else
 			{
 				// collision, re-hash
-				//cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
+				cerr << "hash collision between \"" << m_strings[h].c_str()  << "\" and \"" << str.c_str() << endl;
 				h = hash_string_internal<force_uppercase>(start, end, h);
 			}
 		}
@@ -759,4 +760,43 @@ Runtime::State Runtime::accept_series	( const char* input )
 	{
 		return sexpr;
 	}
+}
+
+void mark_all ( char tag, Cell* cell )
+{
+	if (!cell) return;
+	if (cell->m_tag == tag) return;
+
+	cell->m_tag = tag;
+
+	if (cell->is_a(Cell::LIST))
+	{
+		mark_all(tag, car(cell));
+		mark_all(tag, cdr(cell));
+	}
+}
+
+void mark_all(char tag, Map<hash, Cell*>& map )
+{
+	for (int i=0; i<map.m_data.size(); i++)
+	{
+		mark_all(tag, map.m_data[i].m_data);
+	}
+}
+
+void Runtime::collect_garbage ( void )
+{
+	mark_all(1, m_T);
+	mark_all(1, m_nil);
+	mark_all(1, m_symbols);
+	mark_all(1, m_functions);
+
+
+	Cell::destroy_marked(0);
+
+	mark_all(0, m_T);
+	mark_all(0, m_nil);
+	mark_all(0, m_symbols);
+	mark_all(0, m_functions);
+
 }

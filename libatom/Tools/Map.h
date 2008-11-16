@@ -5,6 +5,9 @@
 template <typename Key, typename Data>
 class Map
 {
+
+public:
+
 	typedef struct
 	{
 		Key			m_key;
@@ -13,7 +16,6 @@ class Map
 
 	Array<Pair> m_data;
 
-public:
 
 	bool has_key ( const Key& key ) const
 	{

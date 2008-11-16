@@ -159,7 +159,9 @@ public: // functions
 	State accept_list			( const char* input );
 	State accept_series			( const char* input );
 	State accept_s_expression	( const char* input );
-	State accept_dot			( const char* input );	
+	State accept_dot			( const char* input );
+
+	void collect_garbage ( void );
 
 	public:
 

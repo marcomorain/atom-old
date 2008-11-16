@@ -41,6 +41,10 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	CellUnion	m_union;
 	String		m_atom_name;
+	char		m_tag;
+
+	Cell*			m_next;
+	static Cell*	s_head;
 
 //private:
 	const Type	m_type;
@@ -49,7 +53,9 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	Cell ( Type type, hash h )
 		: m_type(type)
+		, m_tag(0)
 	{
+		init_links();
 		m_union.u_int = 0;
 		
 		switch (m_type)
@@ -70,7 +76,9 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	Cell ( Type type )
 		: m_type(type)
+		, m_tag(0)
 	{
+		init_links();
 		m_union.u_int = 0;
 	}
 
@@ -79,9 +87,16 @@ class Cell : public NoCopy, public Counted<Cell>
 		return (m_type & type);
 	}
 
-	~Cell ( void )
+//	private:
+
+	~Cell ()
 	{
+		jassert(!m_next);
 	}
+
+	public:
+
+	static void destroy_marked(char tag);
 
 	inline const hash& ident ( void )
 	{
@@ -102,7 +117,6 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	void set_atom_name ( const char* start, const char* end );
 	void set_atom_name ( const char* name );
-
 
 	inline Cell* car () const
 	{
@@ -127,6 +141,13 @@ class Cell : public NoCopy, public Counted<Cell>
 		jassert(is_a(LIST));
 		return m_union.u_cons.m_cdr;
 	}
+
+	inline void init_links ( void )
+	{
+		m_next = s_head;
+		s_head = this;
+	}
+
 };
 
 

@@ -27,6 +27,7 @@ class NoCopy
 	inline NoCopy () {}; 
 };
 
+
 template <typename Type>
 class Counted
 {
