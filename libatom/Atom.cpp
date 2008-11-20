@@ -133,7 +133,7 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	{
 		jassert(param);
 		const hash name = car(arg)->ident();
-		old_values.push_back( m_symbols[name] );
+		old_values.push_back( m_symbols.get(name, null) );
 		m_symbols[ name ] = evaluate(car(param));
 	}
 
@@ -791,12 +791,10 @@ void Runtime::collect_garbage ( void )
 	mark_all(1, m_symbols);
 	mark_all(1, m_functions);
 
-
 	Cell::destroy_marked(0);
 
 	mark_all(0, m_T);
 	mark_all(0, m_nil);
 	mark_all(0, m_symbols);
 	mark_all(0, m_functions);
-
 }

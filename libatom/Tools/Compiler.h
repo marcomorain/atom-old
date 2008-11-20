@@ -32,14 +32,10 @@ class Counted
 {
 	public:
 	static int	s_count;
-	static int	s_next;
-	int			m_object_number;
 
 	Counted ( void )
 	{
-		m_object_number = s_next;
 		s_count++;
-		s_next++;
 	}
 
 	~Counted ( void )

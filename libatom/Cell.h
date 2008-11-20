@@ -91,7 +91,7 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	~Cell ()
 	{
-		jassert(!m_next);
+		jassert(m_next == (Cell*)0xdeadbeef);
 	}
 
 	public:
