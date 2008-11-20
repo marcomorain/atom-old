@@ -20,34 +20,26 @@ void Cell::set_atom_name ( const char* name )
 
 void Cell::destroy_marked(char tag)
 {
-	Cell* last		= null;
+	while (s_head->m_tag == tag)
+	{
+		Cell* to_delete = s_head;
+		s_head = s_head->m_next;
+		to_delete->m_next = (Cell*)0xdeadbeef;
+		delete to_delete;
+	}
+
 	Cell* current	= s_head;
 
 	while (current)
 	{
-		Cell* next = current->m_next;
-
-		jassert(next != 0xFeeeFeee);
-
-		if (current->m_tag == tag)
-		{			
-			if (last)
-			{
-				jassert(last->m_tag != tag);
-				last->m_next = current->m_next;
-			}
-
-			current->m_next = null;
-			delete current;
-			current = 0;
-		}
-		else
+		if (current->m_next && current->m_next->m_tag == tag)
 		{
-			jassert(current != 0xFeeeFeee);
-			jassert(last != 0xFeeeFeee);
-			last = current;
+			Cell* to_delete = current->m_next;
+			current->m_next = current->m_next->m_next;
+			to_delete->m_next = (Cell*)0xdeadbeef;
+			delete to_delete;
 		}
 
-		current = next;
+		current = current->m_next;
 	}
 }

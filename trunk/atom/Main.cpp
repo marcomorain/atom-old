@@ -8,11 +8,11 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-	//clog << "Size Of Cell " << sizeof(Cell) << " bytes." << endl;
+	clog << "Size Of Cell " << sizeof(Cell) << " bytes." << endl;
 	Runtime runtime;
 	
-	runtime.parse_and_evaluate("(load \"atom.lsp\")");
-	runtime.parse_and_evaluate("(load \"lisp.lsp\")");
+	//runtime.parse_and_evaluate("(load \"atom.lsp\")");
+	//runtime.parse_and_evaluate("(load \"lisp.lsp\")");
 
 	while(true)
 	{
