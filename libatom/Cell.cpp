@@ -18,9 +18,9 @@ void Cell::set_atom_name ( const char* name )
 	set_atom_name(name, end);
 }
 
-void Cell::destroy_marked(char tag)
+void Cell::destroy_not_marked(char tag)
 {
-	while (s_head->m_tag == tag)
+	while (s_head->m_tag != tag)
 	{
 		Cell* to_delete = s_head;
 		s_head = s_head->m_next;
@@ -32,7 +32,7 @@ void Cell::destroy_marked(char tag)
 
 	while (current)
 	{
-		if (current->m_next && current->m_next->m_tag == tag)
+		if (current->m_next && current->m_next->m_tag != tag)
 		{
 			Cell* to_delete = current->m_next;
 			current->m_next = current->m_next->m_next;

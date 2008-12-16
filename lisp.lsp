@@ -111,7 +111,8 @@
 ;; McCarthy's `among' function (returns t or nil).
 (defun member (x y)
   (and (not (null y))
-       (or (equal x (car y)) (member x (cdr y)))))
+       (or (equal x (car y))
+           (member x (cdr y)))))
 
 ;; Pair the corresponding elements of two lists.
 (defun pair (x y)

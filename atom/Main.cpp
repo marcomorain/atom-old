@@ -11,8 +11,8 @@ int main (int argc, char** argv)
 	clog << "Size Of Cell " << sizeof(Cell) << " bytes." << endl;
 	Runtime runtime;
 	
-	//runtime.parse_and_evaluate("(load \"atom.lsp\")");
-	//runtime.parse_and_evaluate("(load \"lisp.lsp\")");
+	runtime.parse_and_evaluate("(load \"atom.lsp\")");
+	runtime.parse_and_evaluate("(load \"lisp.lsp\")");
 
 	while(true)
 	{
@@ -23,9 +23,13 @@ int main (int argc, char** argv)
 		if ( strlen ( buffer ) == 0 ) break;
 		runtime.parse_and_evaluate(buffer);
 
-		cout << "Cells before gc: " << Cell::s_count << endl;
+		cout	<< "Cells before gc: " << Cell::s_count
+				<< " (" << runtime.m_symbols.m_data.size()
+				<< "/"  << runtime.m_functions.m_data.size() << ")" << endl;
 		runtime.collect_garbage();
-		cout << "Cells after  gc: " << Cell::s_count << endl;
+		cout << "Cells after  gc: " << Cell::s_count 
+			<< " (" << runtime.m_symbols.m_data.size()
+			<< "/"  << runtime.m_functions.m_data.size() << ")" << endl;
 	}
 
 	//cout << "Press any key to quit." << endl;

@@ -96,7 +96,7 @@ class Cell : public NoCopy, public Counted<Cell>
 
 	public:
 
-	static void destroy_marked(char tag);
+	static void destroy_not_marked(char tag);
 
 	inline const hash& ident ( void )
 	{
