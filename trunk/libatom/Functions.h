@@ -20,10 +20,11 @@ Cell* function_eq				( Runtime& runtime, Cell* params );
 Cell* function_error			( Runtime& runtime, Cell* params );
 // expt
 // fdefinition
-// function
+Cell* function_function			( Runtime& runtime, Cell* params );
 // floor
 // gensym
 // get-setf-expression
+Cell* function_while			( Runtime& runtime, Cell* params );
 Cell* function_if				( Runtime& runtime, Cell* params );
 Cell* function_imagpart			( Runtime& runtime, Cell* params );
 // labels

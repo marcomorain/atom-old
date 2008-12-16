@@ -34,6 +34,7 @@ public:
 		}
 		Pair p;
 		p.m_key = key;
+		p.m_data = Data();
 		m_data.push_back(p);
 		return m_data.back().m_data;
 	}

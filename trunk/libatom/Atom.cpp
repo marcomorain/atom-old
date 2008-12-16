@@ -15,6 +15,7 @@ Runtime::Runtime ( void )
 , m_hash_lambda		(hash_ident("LAMBDA"))
 , m_hash_nil		(hash_ident("NIL"))
 , m_hash_t			(hash_ident("T"))
+, m_garbage_tag		(1)
 {	
 	m_T = new Cell(Cell::TRUE);
 	m_T->set_atom_name("T");
@@ -51,7 +52,9 @@ Runtime::Runtime ( void )
 	register_function("PRINC",		function_princ);
 	register_function("PROG1",		function_prog1);
 	register_function("PROGN",		function_progn);
+	register_function("FUNCTION",	function_function);
 	register_function("LENGTH",		function_length);
+	register_function("WHILE",		function_while);
 	register_function("BLOCK",		function_block);
 	register_function("RETURN-FROM",function_return_from);
 	register_function("BACKQUOTE",	function_backquote);
@@ -122,11 +125,11 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 	//todo: cache this somewhere
 	const int num_args = length(arg_list);
 
-	jassert( num_args == length(params));
+	jassert( num_args == length(params) );
 
 	Array<Cell*> old_values;
+	old_values.reserve(num_args);
 
-	// todo: push args
 	for (	Cell* arg = arg_list, *param = params;
 			arg;
 			arg = cdr(arg), param = cdr(param))
@@ -139,12 +142,11 @@ Cell* Runtime::funcall ( Cell* func, Cell* params )
 
 	Cell* result = function_progn( *this, body );
 
-	// todo: pop args
 	int from_end = 1;
 	for (Cell* arg = arg_list; arg; arg = cdr(arg))
 	{
 		const hash name = car(arg)->ident();
-		m_symbols[ name ] = old_values[old_values.size() - from_end];
+		m_symbols[name] = old_values[old_values.size() - from_end];
 		from_end++;
 	}
 	return result;
@@ -167,7 +169,7 @@ Cell* Runtime::call_function (Cell* function, Cell* params )
 
 	if (built_in)
 	{
-		//clog << "Calling built-in \"" << name( function ) << "\"" << endl;
+		clog << "Calling built-in \"" << name( function ) << "\"" << endl;
 		Cell* result = built_in(*this, params);
 		jassert(result);
 		return result;
@@ -196,12 +198,6 @@ const char* Runtime::name ( Cell* cell ) const
 void Runtime::register_function ( const char* name, Runtime::Function func )
 {
 	m_builtins[ hash_ident(name, name+strlen(name)) ] = func;
-}
-void Runtime::def_macro ( hash h, Cell* params, Cell* body )
-{
-	Macro& m = m_macros[h];
-	m.params = params;
-	m.body   = body;
 }
 
 void Runtime::output( Cell* cell, bool new_line ) const
@@ -508,7 +504,7 @@ hash Runtime::hash_character_string ( const char* start, const char* end )
 		else
 		{
 			// add the string
-			std::swap( m_strings[h], str );
+			m_strings[h] = str;
 		}
 
 	};
@@ -764,7 +760,8 @@ Runtime::State Runtime::accept_series	( const char* input )
 
 void mark_all ( char tag, Cell* cell )
 {
-	if (!cell) return;
+	if (!cell)
+		return;
 	if (cell->m_tag == tag) return;
 
 	cell->m_tag = tag;
@@ -786,15 +783,12 @@ void mark_all(char tag, Map<hash, Cell*>& map )
 
 void Runtime::collect_garbage ( void )
 {
-	mark_all(1, m_T);
-	mark_all(1, m_nil);
-	mark_all(1, m_symbols);
-	mark_all(1, m_functions);
+	mark_all(m_garbage_tag, m_T);
+	mark_all(m_garbage_tag, m_nil);
+	mark_all(m_garbage_tag, m_symbols);
+	mark_all(m_garbage_tag, m_functions);
 
-	Cell::destroy_marked(0);
+	Cell::destroy_not_marked(m_garbage_tag);
 
-	mark_all(0, m_T);
-	mark_all(0, m_nil);
-	mark_all(0, m_symbols);
-	mark_all(0, m_functions);
+	m_garbage_tag++;
 }

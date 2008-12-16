@@ -47,6 +47,8 @@ class Runtime : public NoCopy
 //  private: // members
 public:
 
+	char m_garbage_tag;
+
 	enum
 	{
 		QUOTE_CHARACTER		= '\'',
@@ -66,13 +68,6 @@ public:
 		const char* input;
 
 	} State;
-
-	typedef struct  
-	{
-		Cell* params;
-		Cell* body;
-
-	} Macro;
 
 	typedef Cell* (*Function)(Runtime&, Cell*);
 
@@ -145,8 +140,6 @@ public: // functions
 	Cell* funcall	( Cell* func, Cell* params );
 	Cell* replace_commas ( Cell* expression );
 
-	void def_macro ( hash h, Cell* params, Cell* body );
-
 	void output ( Cell* cell, bool new_line ) const;
 	void output_recursive ( Cell* cell, bool head_of_list) const;
 
@@ -171,7 +164,6 @@ public: // functions
 	Map<hash, Function> m_builtins;
 	Map<hash, Cell*>	m_symbols;
 	Map<hash, Cell*>	m_functions;
-	Map<hash, Macro>	m_macros;
 
 	// There is only ever one copy of a string.
 	Map<hash, String> m_strings;

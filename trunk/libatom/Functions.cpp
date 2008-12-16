@@ -536,6 +536,22 @@ Cell* function_less_than ( Runtime& runtime, Cell* params )
 	return function_less_than ( runtime, cdr(params));
 }
 
+Cell* function_while			( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+
+	Cell* first  = runtime.evaluate(car(params));
+	jassert(first);
+}
+
+Cell* function_function			( Runtime& runtime, Cell* params )
+{
+	jassert(params);
+	Cell* first  = car(params);
+	jassert(first);
+	return runtime.m_functions.get(first->ident(), runtime.m_nil);
+}
+
 Cell* function_load ( Runtime& runtime,	Cell* params )
 {
 	jassert(params);
@@ -558,6 +574,8 @@ Cell* function_load ( Runtime& runtime,	Cell* params )
 
 	char* buffer = new char [size];
 	size_t count = fread(buffer, size, 1, file);
+	
+	fclose(file);
 
 	bool success = false;
 
